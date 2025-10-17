@@ -6,15 +6,15 @@
     "url": "https://github.com/brooktec"
   },
   "metadata": {
-    "description": "Brooktec's workflow orchestration plugins and agents",
-    "version": "0.0.1"
+    "description": "Brooktec's workflow orchestration plugins and agents. Install all plugins together for full workflow support.",
+    "version": "0.0.2"
   },
   "plugins": [
     {
       "name": "frontend-orchestration",
       "source": "./plugins/frontend-orchestration",
-      "description": "Frontend orchestration with testing, security, performance, and deployment",
-      "version": "0.0.1",
+      "description": "Frontend orchestration workflow. REQUIRES: frontend-mobile-development, security-compliance, and git-actions plugins to be installed for complete workflow.",
+      "version": "0.0.2",
       "category": "workflows",
       "strict": false,
       "agents": [
@@ -29,7 +29,7 @@
       "name": "frontend-mobile-development",
       "source": "./plugins/frontend-mobile-development",
       "description": "Frontend UI development and mobile application implementation across platforms",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "category": "development",
       "strict": false,
       "agents": [
@@ -41,7 +41,7 @@
       "name": "security-compliance",
       "source": "./plugins/security-compliance",
       "description": "Security auditing, vulnerability assessment, and compliance validation for applications",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "category": "security",
       "strict": false,
       "agents": [
@@ -52,7 +52,7 @@
       "name": "git-actions",
       "source": "./plugins/git-actions",
       "description": "Git operations and pull request management with Redmine integration",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "category": "development",
       "strict": false,
       "agents": [
