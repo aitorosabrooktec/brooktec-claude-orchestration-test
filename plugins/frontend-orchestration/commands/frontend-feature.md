@@ -1,6 +1,6 @@
 Orchestrate frontend feature development:
 
-[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend feature with proper setup validation, clear requirements, and security compliance. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, proceeds with framework-aware implementation using best practices for modern React development, and concludes with comprehensive security auditing. The frontend developer agent automatically detects existing tooling (Next.js version, state management, styling, authentication) and adapts accordingly, while informing users about alternative approaches when beneficial.]
+[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, proceeds with framework-aware implementation using best practices for modern React development, performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The frontend developer agent automatically detects existing tooling (Next.js version, state management, styling, authentication) and adapts accordingly, while informing users about alternative approaches when beneficial.]
 
 ## Phase 1: Setup & Requirements Validation
 
@@ -10,8 +10,11 @@ Orchestrate frontend feature development:
   
   Claude Project Initialization (FIRST):
   - Check if CLAUDE.md file exists in project root
-  - If CLAUDE.md doesn't exist: Execute /claude init to initialize Claude project
-  - Verify CLAUDE.md was created successfully
+  - If CLAUDE.md doesn't exist: 
+    - STOP and inform user to run /init in the chat
+    - Wait for user to execute /init and confirm completion
+    - Re-check for CLAUDE.md after user confirms
+    - Continue with remaining setup once verified
   
   Git Branch Validation (SECOND):
   - Check current git branch
@@ -27,14 +30,16 @@ Orchestrate frontend feature development:
   - Validate environment variables (.env files from Shadows if templates exist)
   - Check if development server is already running
   - Start the local development server if not running"
-- Expected output: Claude initialization status (CLAUDE.md exists or created), git branch validation status, environment status report, confirmation of dependencies installed, Node version validation, environment variables status, dev server running status (existing or newly started)
+- Expected output: Claude initialization status (CLAUDE.md exists), git branch validation status, environment status report, confirmation of dependencies installed, Node version validation, environment variables status, dev server running status (existing or newly started)
 - Context: Project root directory, git repository, and package.json configuration
-- Action: This step must complete successfully before proceeding. Automatically executes /claude init if needed. STOPS if:
-  - On develop/main branches (directs user to create feature branch)
+- Action: This step must complete successfully before proceeding. STOPS and waits for user action if:
+  - CLAUDE.md missing (user must run /init and type 'continue')
+  - On develop/main branches (user must create feature branch)
   - Branch doesn't follow feature/{taskId}-* format
-  - Uncommitted changes exist (directs user to commit or stash)
-  - .env file is missing when template exists (directs user to Shadows)
+  - Uncommitted changes exist (user must commit or stash)
+  - .env file is missing when template exists (user must get from Shadows)
   - Any other critical environment issues
+  After user resolves issue, workflow continues automatically
 
 ### 2. Requirements Review & Clarification
 - Use Task tool with subagent_type="frontend-orchestration::requirements-reviewer"
@@ -119,7 +124,40 @@ Orchestrate frontend feature development:
 - Context: Implemented feature from Phase 2, authentication patterns used, API integration approach, detected framework and libraries
 - Action: Identify security vulnerabilities and provide actionable remediation steps. If critical vulnerabilities are found, flag them for immediate attention before feature deployment.
 
+### ⚠️ MANDATORY APPROVAL CHECKPOINT
+
+**STOP HERE and request user approval before proceeding to Phase 4**
+
+Present to user:
+- Summary of implemented feature
+- Security audit results (critical/high/medium/low findings)
+- Overall quality assessment
+- Any remaining concerns or recommendations
+
+Ask user:
+"The feature implementation and security audit are complete. 
+
+📊 **Summary:**
+- Feature: [Brief description]
+- Security Status: [Status with findings count]
+- Code Quality: [Assessment]
+
+Please review the implementation and security findings.
+
+✅ **Approve and Create PR**: Type 'yes', 'approve', or 'continue' to proceed to PR creation
+🔄 **Request Changes**: Type 'no', 'changes needed', or describe what needs to be fixed to return to development phase
+❓ **Need More Info**: Ask questions about the implementation or security findings"
+
+**User Response Handling:**
+- If APPROVED (yes/approve/continue): Proceed to Phase 4 (PR Creation)
+- If CHANGES NEEDED (no/changes needed/specific requests): Return to Phase 2 (Development) with user's feedback
+- If QUESTIONS: Answer questions and ask again for approval
+
+**IMPORTANT**: Do NOT proceed to Phase 4 without explicit user approval.
+
 ## Phase 4: Pull Request Creation
+
+**⚠️ This phase only executes after explicit user approval from Phase 3 checkpoint**
 
 ### 5. Create Pull Request
 - Use Command tool with command="git-actions::create-pull-request"
@@ -207,7 +245,14 @@ Orchestrate frontend feature development:
 - Security best practices implemented
 - Remediation plan for any medium/low findings documented
 
-### Phase 4 Criteria
+### Approval Checkpoint Criteria
+- Phase 3 security audit completed successfully
+- Summary presented to user with all findings
+- User explicitly approves to continue (yes/approve/continue)
+- OR user requests changes with specific feedback (returns to Phase 2)
+
+### Phase 4 Criteria (Only after approval)
+- User approval received from Phase 3 checkpoint
 - Redmine taskId provided by user
 - All changes committed with descriptive message including taskId
 - Pull Request created (manually for now) with:
@@ -221,16 +266,20 @@ Orchestrate frontend feature development:
 ### Phase Flow
 - Phase 1 must complete successfully before Phase 2 begins
 - Phase 2 must complete successfully before Phase 3 begins
-- Phase 3 must complete successfully before Phase 4 begins
+- Phase 3 must complete successfully and receive **USER APPROVAL** before Phase 4 begins
+- **APPROVAL CHECKPOINT**: After Phase 3, workflow STOPS and requests user approval
 - Any environment issues must be resolved before development starts
 - Requirements clarification is mandatory if any ambiguity exists
 - Development phase proceeds only with validated, clear requirements
 - Security audit is mandatory before feature is considered production-ready
+- **User can request changes**: If not approved, workflow returns to Phase 2 with feedback
 - Pull Request creation requires Redmine taskId from user
+- Pull Request creation only proceeds with explicit user approval
 
 ### Phase 1 (Setup & Requirements)
 - Project-setup agent checks Claude initialization FIRST (CLAUDE.md must exist)
-- Automatically executes /claude init if CLAUDE.md is missing
+- If CLAUDE.md missing: Stops and instructs user to run /init, waits for user confirmation
+- After user runs /init and confirms, re-checks and continues
 - Checks git branch SECOND (must be feature/{taskId}-*)
 - STOPS if on develop or main branches (directs user to create feature branch)
 - STOPS if branch doesn't follow naming convention
@@ -251,7 +300,7 @@ Orchestrate frontend feature development:
 - Provide precise, measurable information about alternative approaches
 - Maintain consistency with existing project patterns and architecture
 
-### Phase 3 (Security Audit)
+### Phase 3 (Security Audit & Approval Checkpoint)
 - Security-auditor agent performs comprehensive frontend security assessment
 - Covers OWASP Top 10 vulnerabilities specific to frontend
 - Reviews authentication implementation, XSS protection, data exposure
@@ -259,6 +308,11 @@ Orchestrate frontend feature development:
 - Flags critical vulnerabilities for immediate remediation
 - Provides specific, actionable remediation steps with code examples
 - Documents security score and risk assessment
+- **STOPS at approval checkpoint after audit completes**
+- Presents summary to user with security findings
+- Requests explicit approval to proceed to Phase 4
+- If user requests changes: Returns to Phase 2 with feedback
+- If user approves: Proceeds to Phase 4
 
 ### Phase 4 (Pull Request Creation)
 - Uses git-actions::create-pull-request command to orchestrate PR workflow

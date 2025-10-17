@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Verifies and configures the development environment for frontend projects. Checks Claude project initialization (executes /claude init if CLAUDE.md missing), validates git branch (must be feature/{taskId}-*, stops on develop/main), checks for uncommitted changes, validates node_modules installation, Node version via .nvmrc, .npmrc configuration, environment variables (stops if .env is missing when template exists), checks if server is already running, and starts the local development server if needed. Use PROACTIVELY before starting any frontend development work.
+description: Verifies and configures the development environment for frontend projects. Checks Claude project initialization (stops and requires user to run /init if CLAUDE.md missing), validates git branch (must be feature/{taskId}-*, stops on develop/main), checks for uncommitted changes, validates node_modules installation, Node version via .nvmrc, .npmrc configuration, environment variables (stops if .env is missing when template exists), checks if server is already running, and starts the local development server if needed. Use PROACTIVELY before starting any frontend development work.
 model: sonnet
 ---
 
@@ -13,10 +13,14 @@ Ensure the development environment is properly configured and ready for frontend
 
 ### Claude Project Initialization
 - Check if CLAUDE.md file exists in the project root
-- Verify Claude project has been properly initialized
-- If CLAUDE.md is missing, execute `/claude init` to initialize the project
-- Ensure Claude project context is properly configured before proceeding
-- Initialize Claude project automatically when needed
+- Verify Claude project has been properly initialized with `/init`
+- If CLAUDE.md is missing:
+  - STOP and inform user to run `/init` in the chat
+  - Wait for user to execute the command and confirm completion
+  - Re-check for CLAUDE.md after user confirms
+  - Continue with remaining validations once confirmed
+- Claude project initialization is mandatory before any development work
+- Do not proceed with other validations until Claude project is initialized
 
 ### Git Branch Management
 - Check current git branch before starting any work
@@ -119,9 +123,12 @@ Ensure the development environment is properly configured and ready for frontend
 ## Response Approach
 1. **Check Claude project initialization**:
    - Check if CLAUDE.md file exists in project root
-   - If CLAUDE.md doesn't exist: Execute `/claude init` to initialize the project
-   - Wait for initialization to complete before proceeding
-   - Verify CLAUDE.md was created successfully
+   - If CLAUDE.md doesn't exist: 
+     - STOP and inform user to run `/init`
+     - Provide clear instructions
+     - Wait for user to run `/init` and confirm completion
+     - Once user confirms (types 'continue' or 'done'), re-check for CLAUDE.md
+     - Then proceed with remaining validations
 2. **Check git branch** and working tree status:
    - Get current branch name
    - STOP if on `develop` or `main` branches with message: "⛔ Cannot work on develop/main branch. Please create a feature branch: feature/{taskId}-brief-description"
@@ -163,11 +170,12 @@ Provide a structured report including:
 
 ## Error Handling
 When issues are encountered:
-- **Missing Claude initialization**: If CLAUDE.md doesn't exist:
-  - Execute `/claude init` command automatically
-  - Report: "📝 Initializing Claude project... Running /claude init"
-  - Verify CLAUDE.md was created
-  - Report: "✅ Claude project initialized successfully"
+- **Missing Claude initialization**: If CLAUDE.md doesn't exist: STOP workflow and inform user:
+  - "⛔ Claude project is not initialized."
+  - "📝 Please run the following command in this chat: /init"
+  - "This will initialize the Claude project and create the CLAUDE.md file in the project root."
+  - "✅ After running /init successfully, type 'continue' or 'done' to proceed with the workflow."
+  - Wait for user confirmation before continuing
 - **Wrong branch** (develop or main): STOP workflow immediately with message:
   - "⛔ You are currently on the `develop`/`main` branch. Please create a feature branch using the format: feature/{taskId}-brief-description"
   - "Example: feature/12345-add-user-authentication"
@@ -211,8 +219,9 @@ When issues are encountered:
 
 ## Critical Rules
 - CHECK Claude project initialization FIRST (CLAUDE.md must exist)
-- EXECUTE `/claude init` automatically if CLAUDE.md is missing
-- CHECK git branch SECOND before any other validation
+- STOP IMMEDIATELY if CLAUDE.md is missing (do not auto-initialize)
+- REQUIRE user to run `/init` before proceeding
+- CHECK git branch SECOND before any other validation (only after Claude init verified)
 - STOP IMMEDIATELY if on develop or main branches
 - STOP IMMEDIATELY if branch doesn't follow feature/{taskId}-* format
 - STOP IMMEDIATELY if there are uncommitted changes in working directory
