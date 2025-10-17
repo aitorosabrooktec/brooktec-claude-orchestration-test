@@ -17,6 +17,10 @@
       "version": "0.0.1",
       "category": "workflows",
       "strict": false,
+      "agents": [
+        "./agents/project-setup.md",
+        "./agents/requirements-reviewer.md"
+      ],
       "commands": [
         "./commands/frontend-feature.md"
       ]
