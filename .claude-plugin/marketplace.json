@@ -1,0 +1,37 @@
+{
+  "name": "claude-code-workflows",
+  "owner": {
+    "name": "Brooktec",
+    "email": "brooktec@developer.com",
+    "url": "https://github.com/brooktec"
+  },
+  "metadata": {
+    "description": "Brooktec's workflow orchestration plugins and agents",
+    "version": "0.0.1"
+  },
+  "plugins": [
+    {
+      "name": "frontend-orchestration",
+      "source": "./plugins/frontend-orchestration",
+      "description": "Frontend orchestration with testing, security, performance, and deployment",
+      "version": "0.0.1",
+      "category": "workflows",
+      "strict": false,
+      "commands": [
+        "./commands/frontend-feature.md"
+      ]
+    },
+    {
+      "name": "frontend-mobile-development",
+      "source": "./plugins/frontend-development",
+      "description": "Frontend UI development and mobile application implementation across platforms",
+      "version": "0.0.1",
+      "category": "development",
+      "strict": false,
+      "agents": [
+        "./agents/frontend-developer.md",
+        "./agents/mobile-developer.md"
+      ]
+    }
+  ]
+}
