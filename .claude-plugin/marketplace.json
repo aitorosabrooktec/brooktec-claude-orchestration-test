@@ -36,6 +36,31 @@
         "./agents/frontend-developer.md",
         "./agents/mobile-developer.md"
       ]
+    },
+    {
+      "name": "security-compliance",
+      "source": "./plugins/security-compliance",
+      "description": "Security auditing, vulnerability assessment, and compliance validation for applications",
+      "version": "0.0.1",
+      "category": "security",
+      "strict": false,
+      "agents": [
+        "./agents/security-auditor.md"
+      ]
+    },
+    {
+      "name": "git-actions",
+      "source": "./plugins/git-actions",
+      "description": "Git operations and pull request management with Redmine integration",
+      "version": "0.0.1",
+      "category": "development",
+      "strict": false,
+      "agents": [
+        "./agents/pull-request-manager.md"
+      ],
+      "commands": [
+        "./commands/create-pull-request.md"
+      ]
     }
   ]
 }
