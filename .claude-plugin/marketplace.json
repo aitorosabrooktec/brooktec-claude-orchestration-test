@@ -27,7 +27,7 @@
     },
     {
       "name": "frontend-mobile-development",
-      "source": "./plugins/frontend-development",
+      "source": "./plugins/frontend-mobile-development",
       "description": "Frontend UI development and mobile application implementation across platforms",
       "version": "0.0.1",
       "category": "development",
