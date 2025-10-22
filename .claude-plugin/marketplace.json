@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Brooktec's workflow orchestration plugins and agents. Install all plugins together for full workflow support.",
-    "version": "0.0.2"
+    "version": "0.0.3"
   },
   "plugins": [
     {
@@ -60,6 +60,21 @@
       ],
       "commands": [
         "./commands/create-pull-request.md"
+      ]
+    },
+    {
+      "name": "pr-review",
+      "source": "./plugins/pr-review",
+      "description": "Comprehensive pull request review with technology detection, code quality analysis, security auditing, and build verification. REQUIRES: security-compliance plugin for security auditing.",
+      "version": "0.0.1",
+      "category": "workflows",
+      "strict": false,
+      "agents": [
+        "./agents/technology-detector.md",
+        "./agents/pr-reviewer.md"
+      ],
+      "commands": [
+        "./commands/review-pull-request.md"
       ]
     }
   ]
