@@ -48,11 +48,24 @@ This marketplace provides a complete frontend development workflow that includes
 - **Agents**:
   - `pull-request-manager` - Handles PR tasks (validation, content generation, submission)
 
+### 5. pr-review (Pull Request Review)
+**Comprehensive pull request review with automated quality and security analysis**
+
+- **Commands**: `review-pull-request` - Complete PR review workflow with technology detection, code quality analysis, security auditing, and build verification
+- **Agents**:
+  - `technology-detector` - Analyzes project structure to identify technologies and frameworks
+  - `pr-reviewer` - Performs comprehensive code quality review with technology-specific insights
+
+**⚠️ IMPORTANT**: This plugin uses the `security-auditor` agent from the `security-compliance` plugin for security analysis.
+
+**Required Dependencies**:
+- `security-compliance` (provides security-auditor agent)
+
 ## Installation
 
 ### Option 1: Install Complete Workflow (Recommended)
 
-To use the full `frontend-feature` workflow, install **ALL** plugins:
+To use the full `frontend-feature` workflow and PR review capabilities, install **ALL** plugins:
 
 ```bash
 # Install all plugins for complete workflow
@@ -60,6 +73,7 @@ To use the full `frontend-feature` workflow, install **ALL** plugins:
 @frontend-mobile-development
 @security-compliance
 @git-actions
+@pr-review
 ```
 
 ### Option 2: Install Individual Plugins
@@ -75,6 +89,10 @@ If you only need specific agents without the full workflow:
 
 # Just PR management
 @git-actions
+
+# Just PR review (requires security-compliance)
+@pr-review
+@security-compliance
 ```
 
 ## Usage
@@ -127,6 +145,105 @@ This will execute a 4-phase workflow:
    - Generates PR title: `[#taskId] Description`
    - Creates comprehensive PR description with security results
    - Provides manual instructions (or automated if GitHub CLI available)
+
+## Pull Request Review Workflow
+
+Once the `pr-review` plugin is installed (along with `security-compliance`), use the review command:
+
+```
+/review-pull-request 42
+```
+
+This will execute a comprehensive 6-phase review workflow:
+
+#### Phase 1: PR Information Gathering
+- Fetches PR details (title, description, author, status)
+- Gets list of changed files with line counts
+- Retrieves full diff of all changes
+- Collects commit history
+- Validates PR is accessible
+
+#### Phase 2: Technology Detection
+**Uses `technology-detector` agent**:
+- Analyzes project structure and configuration files
+- Identifies languages, frameworks, and architectural patterns
+- Detects:
+  - Frontend stack (React, Next.js, Vue, Angular, etc.)
+  - Backend stack (Express, NestJS, FastAPI, Django, etc.)
+  - State management (Redux, Zustand, Jotai, etc.)
+  - Styling approach (Tailwind, SCSS, styled-components, etc.)
+  - Testing frameworks (Jest, Vitest, Pytest, etc.)
+- Provides technology-specific review focus areas
+
+#### Phase 3: Code Quality Review
+**Uses `pr-reviewer` agent**:
+- Reviews all changed files with technology-specific lens
+- Analyzes:
+  - Code quality and readability
+  - Best practices adherence
+  - Performance considerations
+  - Maintainability and complexity
+  - Testing coverage
+  - Documentation completeness
+- Provides structured feedback with:
+  - Severity levels (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
+  - Specific file:line references
+  - Current code vs suggested fix examples
+  - Rationale and documentation links
+
+#### Phase 4: Security Audit
+**Uses `security-auditor` agent from security-compliance plugin**:
+- Performs OWASP Top 10 vulnerability scan
+- Checks for:
+  - SQL/NoSQL injection vulnerabilities
+  - XSS and CSRF vulnerabilities
+  - Authentication/authorization issues
+  - Sensitive data exposure
+  - Input validation problems
+- Generates security compliance report
+
+#### Phase 5: Lint & Build Verification
+- Runs project linting tools (ESLint, pylint, etc.)
+- Executes build process
+- Checks for type errors (TypeScript, mypy, etc.)
+- Reports all errors and warnings
+
+#### Phase 6: Review Summary & Publishing
+- Consolidates all findings from previous phases
+- Generates comprehensive review report
+- Provides final recommendation:
+  - **BLOCKED**: Critical security issues or build failures
+  - **REQUEST CHANGES**: High priority issues
+  - **COMMENT**: Medium/low priority suggestions
+  - **APPROVE**: No significant issues
+- Optionally posts comments to PR (if GitHub CLI available)
+
+### Usage Examples
+
+**Basic PR review:**
+```
+/review-pull-request 42
+```
+
+**Security-focused review:**
+```
+/review-pull-request 123 --focus=security
+```
+
+**Quick quality check:**
+```
+/review-pull-request 89 --focus=quality
+```
+
+### Review Output
+
+The review generates:
+- **Detailed findings** for each issue with code examples
+- **Severity categorization** (Critical → Nitpick)
+- **File:line references** for all issues
+- **Suggested fixes** with code snippets
+- **Positive highlights** of good patterns
+- **Actionable next steps** for the PR author
 
 ## Frontend Developer Agent Features
 
@@ -225,7 +342,19 @@ Pull requests require a Redmine taskId for traceability. Format: `#12345` or `12
 
 ## Version History
 
-### v0.0.2 (Current)
+### v0.0.3 (Current)
+- **NEW PLUGIN**: `pr-review` - Comprehensive pull request review workflow
+  - Added `technology-detector` agent for automatic tech stack detection
+  - Added `pr-reviewer` agent for code quality analysis
+  - Added `review-pull-request` command with 6-phase review workflow
+  - Integrated security auditing with `security-auditor` agent
+  - Added lint/build verification phase
+  - Generates structured review reports with severity levels
+  - Supports technology-specific review criteria
+  - Provides actionable feedback with code examples
+- Updated README with PR review documentation
+
+### v0.0.2
 - Added Claude project initialization checking
 - Added ESLint configuration validation with warning
 - Enhanced framework detection (Next.js version and router)
