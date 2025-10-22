@@ -1,6 +1,6 @@
 Orchestrate frontend feature development:
 
-[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular vs React/Next.js), and proceeds with framework-aware implementation using best practices for modern frontend development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. The workflow performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer or frontend-developer) automatically detect existing tooling (framework version, state management, styling, authentication) and adapt accordingly, while informing users about alternative approaches when beneficial.]
+[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend/mobile feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular web, React/Next.js web, or Mobile frameworks), and proceeds with framework-aware implementation using best practices for modern development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. The workflow performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer, frontend-developer, or mobile-developer) automatically detect existing tooling (framework version, state management, styling, authentication, navigation) and adapt accordingly, while informing users about alternative approaches when beneficial.]
 
 ## Phase 1: Setup & Requirements Validation
 
@@ -54,21 +54,41 @@ Orchestrate frontend feature development:
 
 **CRITICAL: Detect project technology BEFORE implementing the feature**
 
-1. **Check package.json for frontend framework**:
-   - Look for @angular/core → Angular project
-   - Look for react and/or next → React/Next.js project
-   - If BOTH found: STOP and ask user which technology to use for this feature
-   - If NEITHER found: STOP and ask user which technology this project uses
+1. **Check for frontend framework and platform**:
+
+   **Web Frameworks (check package.json):**
+   - Look for @angular/core → Angular web project
+   - Look for react (without react-native) → React web project
+   - Look for next → Next.js project
+
+   **Mobile Frameworks (check package.json and project files):**
+   - Look for react-native → React Native mobile project
+   - Look for expo → Expo mobile project
+   - Look for @ionic → Ionic mobile project
+   - Look for pubspec.yaml file → Flutter mobile project
+   - Look for ios/ and android/ native directories → Native mobile project
+
+   **Ambiguity scenarios:**
+   - If MULTIPLE web frameworks found (Angular + React): STOP and ask user
+   - If MULTIPLE mobile frameworks found: STOP and ask user
+   - If NO clear framework indicators: STOP and ask user
+   - If package.json missing or incomplete: STOP and ask user
 
 2. **If unclear or ambiguous**:
    - Multiple frameworks detected
    - No clear framework indicators
    - Package.json missing or incomplete
+   - Both web and mobile frameworks present
 
    **→ STOP IMMEDIATELY and ask user:**
    "I detected [describe what was found]. Which technology should I use for this feature?
-   - Angular
-   - React/Next.js
+   - Angular (web)
+   - React/Next.js (web)
+   - React Native (mobile)
+   - Flutter (mobile)
+   - Expo (mobile)
+   - Ionic (mobile)
+   - Native iOS/Android (mobile)
    - Other (please specify)"
 
    **Wait for user response before proceeding.**
@@ -137,23 +157,61 @@ Orchestrate frontend feature development:
 - Context: Validated requirements from Phase 1, existing project structure and design system, framework version and routing approach, state management library, styling approach
 - Action: Implement the complete feature with production-ready code, following project conventions and framework-specific best practices.
 
+### 3c. Mobile Feature Implementation (if Mobile framework detected)
+- Use Task tool with subagent_type="frontend-mobile-development::mobile-developer"
+- Prompt: "Implement the following mobile feature: $ARGUMENTS.
+
+  Platform Detection phase:
+  - Check package.json and project structure for mobile framework
+  - React Native: Check for react-native version, detect New Architecture usage
+  - Expo: Check for Expo SDK version and development build configuration
+  - Flutter: Check pubspec.yaml for Flutter SDK version and dependencies
+  - Ionic: Check for Ionic version and Capacitor configuration
+  - Native: Detect iOS (Swift/SwiftUI) or Android (Kotlin/Compose) project structure
+  - Detect state management: check for existing library (Redux Toolkit, Zustand, Riverpod, Bloc, Provider) - continue if found
+  - Detect navigation: check for existing navigation library (React Navigation, Flutter Navigator, etc.)
+  - Detect styling: check for existing approach (Styled Components, NativeWind, Flutter themes)
+  - For each detected tool that differs from preferred stack: inform user about preferred tool benefits ONLY if they provide clear advantages, then continue with existing approach
+
+  Implementation phase:
+  - Build mobile components/screens with proper TypeScript/Dart types and platform-specific patterns
+  - Implement state management with detected approach (use existing library if found)
+  - Style components using detected approach and platform design guidelines
+  - Implement authentication using detected approach (biometric, OAuth, custom API)
+  - Handle API integration with proper error handling, loading states, and offline support
+  - Ensure responsive design across different device sizes (phones, tablets)
+  - Follow platform-specific design guidelines (Human Interface Guidelines for iOS, Material Design for Android)
+  - Implement proper performance optimization (list virtualization, image optimization, lazy loading)
+  - Handle platform permissions and native integrations properly
+  - Manage app lifecycle and background state correctly
+  - Include offline-first capabilities where appropriate
+
+  Communication:
+  - If using tools different from preferred stack, inform user once about alternative benefits (only if advantageous)
+  - Provide specific, measurable advantages
+  - Always continue with detected approach for consistency"
+- Expected output: Mobile components/screens (React Native components, Flutter widgets, or native views), TypeScript/Dart types, state management implementation (using detected library), platform-appropriate styling, API integration with offline support, responsive layouts for different device sizes, platform-specific optimizations, proper permission handling, unit and integration tests, optional note about alternative tools if advantageous
+- Context: Validated requirements from Phase 1, existing mobile project structure, mobile framework version and architecture, state management library, navigation approach, styling approach, target platforms (iOS/Android)
+- Action: Implement the complete mobile feature with production-ready code, following mobile development best practices and platform-specific guidelines.
+
 ## Phase 3: Security Audit & Compliance
 
 ### 4. Security Audit & Vulnerability Assessment
 - Use Task tool with subagent_type="security-compliance::security-auditor"
-- Prompt: "Perform comprehensive security audit of the implemented frontend feature: $ARGUMENTS.
-  
-  Frontend Security Assessment:
+- Prompt: "Perform comprehensive security audit of the implemented frontend/mobile feature: $ARGUMENTS.
+
+  Frontend/Mobile Security Assessment:
   - Review authentication implementation for security vulnerabilities (token storage, session management, CSRF protection)
   - Check for XSS vulnerabilities in component rendering and user input handling
   - Validate input sanitization and output encoding
-  - Review API integration for secure communication (HTTPS, headers, CORS configuration)
+  - Review API integration for secure communication (HTTPS, certificate pinning for mobile, headers, CORS configuration)
   - Check for sensitive data exposure in client-side code or console logs
   - Verify proper error handling without information leakage
-  - Assess security headers implementation (CSP, X-Frame-Options, HSTS)
+  - Assess security headers implementation (CSP, X-Frame-Options, HSTS for web)
   - Review dependencies for known vulnerabilities
-  
-  OWASP Top 10 Frontend Checks:
+  - **Mobile-specific**: Check biometric authentication security, secure storage (Keychain/Keystore), certificate pinning, code obfuscation, deep link validation, platform permissions handling
+
+  OWASP Top 10 Frontend/Mobile Checks (includes OWASP MASVS for mobile):
   - Broken Access Control: Verify proper authorization checks before sensitive operations
   - Cryptographic Failures: Check for secure data transmission and storage
   - Injection: Validate protection against XSS, SQL injection in API calls
@@ -166,11 +224,12 @@ Orchestrate frontend feature development:
   - Server-Side Request Forgery: Check for SSRF vulnerabilities in API calls
   
   Compliance & Best Practices:
-  - Accessibility compliance (WCAG 2.1 AA)
-  - Data privacy considerations (localStorage vs httpOnly cookies)
-  - TypeScript type safety (no 'any' types that could hide security issues)
-  - Environment variable security (no secrets in client-side code)
+  - Accessibility compliance (WCAG 2.1 AA for web, platform accessibility for mobile)
+  - Data privacy considerations (localStorage vs httpOnly cookies for web, secure storage for mobile)
+  - TypeScript/Dart type safety (no 'any' types that could hide security issues)
+  - Environment variable security (no secrets in client-side code or app bundles)
   - Rate limiting considerations for API calls
+  - **Mobile-specific**: App store compliance (privacy labels, data collection disclosure), background data handling, secure inter-app communication
   
   Output Requirements:
   - Security findings report with severity levels (Critical, High, Medium, Low)
@@ -179,7 +238,7 @@ Orchestrate frontend feature development:
   - Compliance checklist status
   - Security score and risk assessment"
 - Expected output: Comprehensive security audit report, vulnerability assessment with severity ratings, specific remediation steps, compliance status, security best practices recommendations
-- Context: Implemented feature from Phase 2, authentication patterns used, API integration approach, detected framework and libraries
+- Context: Implemented feature from Phase 2, authentication patterns used, API integration approach, detected framework and libraries (web or mobile), platform-specific security considerations
 - Action: Identify security vulnerabilities and provide actionable remediation steps. If critical vulnerabilities are found, flag them for immediate attention before feature deployment.
 
 ### ⚠️ MANDATORY APPROVAL CHECKPOINT
@@ -278,11 +337,14 @@ Please review the implementation and security findings.
 - Requirements are clear, complete, and validated
 
 ### Phase 2 Criteria
-- **Technology correctly identified**: Angular or React/Next.js detected from package.json
+- **Technology correctly identified**: Angular, React/Next.js, or Mobile framework detected
 - **Ambiguity resolved**: If unclear, user was asked to specify technology
-- **Appropriate agent used**: angular-developer for Angular, frontend-developer for React/Next.js
+- **Appropriate agent used**:
+  - angular-developer for Angular web apps
+  - frontend-developer for React/Next.js web apps
+  - mobile-developer for mobile apps (React Native, Flutter, Expo, Ionic, Native)
 
-**For Angular projects:**
+**For Angular web projects:**
 - Angular version and architecture correctly detected (standalone vs NgModule)
 - Version-appropriate patterns applied (signals for 16+, control flow for 17+)
 - OnPush change detection strategy used by default
@@ -293,20 +355,32 @@ Please review the implementation and security findings.
 - HttpClient used for API integration
 - Angular CDK A11y patterns for accessibility (WCAG 2.1 AA)
 
-**For React/Next.js projects:**
+**For React/Next.js web projects:**
 - Framework and version correctly detected (Next.js version and router type, or standard React)
 - Next.js patterns match the installed version and router structure (App Router vs Pages Router)
 - State management correctly detected and implemented (using existing or Zustand default)
 - Styling approach correctly detected and used (using existing or SCSS default)
 - Authentication implemented using detected approach (using existing or custom API default)
 
-**Common criteria (both technologies):**
-- TypeScript types are properly defined (no 'any' types, strict mode)
-- Components are responsive and accessible (WCAG 2.1 AA)
+**For mobile projects (React Native, Flutter, Expo, Ionic, Native):**
+- Mobile framework and version correctly detected
+- Platform-specific patterns applied (React Native New Architecture, Flutter 3.x, native iOS/Android)
+- State management correctly detected and implemented (Redux Toolkit, Zustand, Riverpod, Bloc, Provider)
+- Navigation correctly detected and implemented (React Navigation, Flutter Navigator, native navigation)
+- Styling follows platform design guidelines (HIG for iOS, Material Design for Android)
+- Platform permissions properly handled
+- Offline-first capabilities implemented where appropriate
+- Performance optimizations applied (list virtualization, image optimization, lazy loading)
+- App lifecycle and background state managed correctly
+- Authentication implemented (biometric, OAuth, or custom API)
+
+**Common criteria (all technologies):**
+- TypeScript/Dart types are properly defined (no 'any' types, strict mode where applicable)
+- Components/screens are responsive and accessible (WCAG 2.1 AA for web, platform accessibility for mobile)
 - Error handling and loading states are implemented
 - Code follows project conventions and style guide
-- Frontend implementation follows framework-appropriate best practices
-- Basic component/unit tests are included
+- Implementation follows framework-appropriate best practices
+- Basic component/unit/integration tests are included
 
 ### Phase 3 Criteria
 - Comprehensive security audit completed
@@ -367,17 +441,27 @@ Please review the implementation and security findings.
 - STOPS if critical information is missing and requests user clarification
 
 ### Phase 2 (Development)
-- **Technology detection is mandatory FIRST**: Check package.json for @angular/core (Angular) or react/next (React/Next.js)
-- **Ambiguity handling**: If both frameworks found, STOP and ask user which to use
-- **Missing indicators**: If no clear framework found, STOP and ask user which technology to use
-- **Angular projects**: Use angular-developer agent with Angular-specific patterns
-  - Detects Angular version and architecture (standalone vs NgModule)
-  - Applies version-appropriate patterns (signals for 16+, control flow for 17+)
-  - Uses OnPush change detection, proper subscription management
-- **React/Next.js projects**: Use frontend-developer agent with React-specific patterns
-  - Detects Next.js version and router type (App Router vs Pages Router)
-  - Applies framework-specific patterns based on detection
-- Always detect and respect existing tooling (state management, styling, authentication)
+- **Technology detection is mandatory FIRST**: Check package.json and project structure for frameworks
+  - **Web frameworks**: @angular/core (Angular), react + next (React/Next.js)
+  - **Mobile frameworks**: react-native, expo, @ionic, pubspec.yaml (Flutter), native directories
+- **Ambiguity handling**:
+  - If multiple web frameworks found, STOP and ask user which to use
+  - If multiple mobile frameworks found, STOP and ask user which to use
+  - If no clear framework indicators, STOP and ask user which technology to use
+  - If both web and mobile frameworks present, STOP and ask user which to use for this feature
+- **Agent routing based on detection**:
+  - **Angular web projects**: Use angular-developer agent
+    - Detects Angular version and architecture (standalone vs NgModule)
+    - Applies version-appropriate patterns (signals for 16+, control flow for 17+)
+    - Uses OnPush change detection, proper subscription management
+  - **React/Next.js web projects**: Use frontend-developer agent
+    - Detects Next.js version and router type (App Router vs Pages Router)
+    - Applies framework-specific patterns based on detection
+  - **Mobile projects**: Use mobile-developer agent
+    - Detects mobile framework (React Native, Flutter, Expo, Ionic, Native)
+    - Applies platform-specific patterns and design guidelines
+    - Handles native integrations, permissions, and offline capabilities
+- Always detect and respect existing tooling (state management, styling, authentication, navigation)
 - Continue with detected approaches for consistency, even if different from preferred stack
 - Inform user about alternative tool benefits only when they provide clear, specific advantages
 - Provide precise, measurable information about alternative approaches
