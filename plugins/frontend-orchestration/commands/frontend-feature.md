@@ -1,6 +1,6 @@
 Orchestrate frontend feature development:
 
-[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, proceeds with framework-aware implementation using best practices for modern React development, performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The frontend developer agent automatically detects existing tooling (Next.js version, state management, styling, authentication) and adapts accordingly, while informing users about alternative approaches when beneficial.]
+[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular vs React/Next.js), and proceeds with framework-aware implementation using best practices for modern frontend development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. The workflow performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer or frontend-developer) automatically detect existing tooling (framework version, state management, styling, authentication) and adapt accordingly, while informing users about alternative approaches when beneficial.]
 
 ## Phase 1: Setup & Requirements Validation
 
@@ -50,10 +50,68 @@ Orchestrate frontend feature development:
 
 ## Phase 2: Development
 
-### 3. Frontend Feature Implementation
+### 3. Technology Detection & Agent Selection
+
+**CRITICAL: Detect project technology BEFORE implementing the feature**
+
+1. **Check package.json for frontend framework**:
+   - Look for @angular/core → Angular project
+   - Look for react and/or next → React/Next.js project
+   - If BOTH found: STOP and ask user which technology to use for this feature
+   - If NEITHER found: STOP and ask user which technology this project uses
+
+2. **If unclear or ambiguous**:
+   - Multiple frameworks detected
+   - No clear framework indicators
+   - Package.json missing or incomplete
+
+   **→ STOP IMMEDIATELY and ask user:**
+   "I detected [describe what was found]. Which technology should I use for this feature?
+   - Angular
+   - React/Next.js
+   - Other (please specify)"
+
+   **Wait for user response before proceeding.**
+
+3. **Once technology is confirmed, proceed with appropriate agent:**
+
+### 3a. Angular Feature Implementation (if Angular detected)
+- Use Task tool with subagent_type="frontend-mobile-development::angular-developer"
+- Prompt: "Implement the following Angular feature: $ARGUMENTS.
+
+  Detection phase:
+  - Check package.json for Angular version (@angular/core)
+  - Detect standalone components vs NgModule architecture
+  - Check for signals usage (Angular 16+)
+  - Check for control flow syntax (Angular 17+)
+  - Detect state management: check for existing library (NgRx Store, NgRx SignalStore, Akita, NGXS) - continue if found
+  - Detect styling: check for existing approach (Tailwind, Angular Material, SCSS) - continue if found
+  - Detect authentication: check for existing auth implementation - continue if found
+  - For each detected tool that differs from preferred stack: inform user about preferred tool benefits ONLY if they provide clear advantages, then continue with existing approach
+
+  Implementation phase:
+  - Build Angular components with proper TypeScript types and OnPush change detection
+  - Use standalone components (Angular 17+) or NgModule based on project architecture
+  - Implement state management with detected approach (use existing library if found, otherwise signals/RxJS)
+  - Style components using detected approach (use existing if found, otherwise SCSS)
+  - Implement authentication using detected approach (use existing if found, otherwise custom API-based with guards and interceptors)
+  - Handle API integration with HttpClient, proper error handling, and loading states
+  - Ensure responsive design and follow accessibility best practices (WCAG 2.1 AA compliance, Angular CDK A11y)
+  - Manage subscriptions properly (async pipe or takeUntil pattern)
+  - Optimize performance with OnPush, trackBy, lazy loading
+
+  Communication:
+  - If using tools different from preferred stack, inform user once about alternative benefits (only if advantageous)
+  - Provide specific, measurable advantages
+  - Always continue with detected approach for consistency"
+- Expected output: Angular components (with version-appropriate patterns), TypeScript types with strict mode, state management implementation (using detected library or signals/RxJS default), styles using detected approach (or SCSS default), API integration with HttpClient and detected auth approach (or custom guards/interceptors), responsive styles, accessibility implementations with Angular CDK, unit tests with TestBed/Jasmine/Jest, optional note about alternative tools if advantageous
+- Context: Validated requirements from Phase 1, existing project structure, Angular version and architecture (standalone vs NgModule), state management library, styling approach
+- Action: Implement the complete Angular feature with production-ready code, following Angular best practices and project conventions.
+
+### 3b. React/Next.js Feature Implementation (if React/Next.js detected)
 - Use Task tool with subagent_type="frontend-mobile-development::frontend-developer"
-- Prompt: "Implement the following frontend feature: $ARGUMENTS. 
-  
+- Prompt: "Implement the following frontend feature: $ARGUMENTS.
+
   Detection phase:
   - Check package.json to detect if Next.js is being used and its version
   - Check for app/ or pages/ directory structure
@@ -61,7 +119,7 @@ Orchestrate frontend feature development:
   - Detect styling: check for any existing approach (continue if found), otherwise use SCSS
   - Detect authentication: check for existing auth implementation (continue if found)
   - For each detected tool that differs from preferred stack: inform user about preferred tool benefits ONLY if they provide clear advantages, then continue with existing approach
-  
+
   Implementation phase:
   - Build React components with proper TypeScript types using patterns appropriate for the detected framework and version
   - Implement state management with detected approach (use existing library if found, otherwise Zustand)
@@ -70,7 +128,7 @@ Orchestrate frontend feature development:
   - Handle API integration with proper error handling and loading states
   - Ensure responsive design and follow accessibility best practices (WCAG 2.1 AA compliance)
   - Include proper error boundaries and optimize for performance
-  
+
   Communication:
   - If using tools different from preferred stack, inform user once about alternative benefits (only if advantageous)
   - Provide specific, measurable advantages (e.g., performance metrics, feature capabilities)
@@ -220,17 +278,35 @@ Please review the implementation and security findings.
 - Requirements are clear, complete, and validated
 
 ### Phase 2 Criteria
+- **Technology correctly identified**: Angular or React/Next.js detected from package.json
+- **Ambiguity resolved**: If unclear, user was asked to specify technology
+- **Appropriate agent used**: angular-developer for Angular, frontend-developer for React/Next.js
+
+**For Angular projects:**
+- Angular version and architecture correctly detected (standalone vs NgModule)
+- Version-appropriate patterns applied (signals for 16+, control flow for 17+)
+- OnPush change detection strategy used by default
+- Proper subscription management implemented (async pipe or takeUntil)
+- State management correctly detected and implemented (using existing or signals/RxJS default)
+- Styling approach correctly detected and used (using existing or SCSS default)
+- Authentication with guards and interceptors (using existing or custom API default)
+- HttpClient used for API integration
+- Angular CDK A11y patterns for accessibility (WCAG 2.1 AA)
+
+**For React/Next.js projects:**
 - Framework and version correctly detected (Next.js version and router type, or standard React)
+- Next.js patterns match the installed version and router structure (App Router vs Pages Router)
 - State management correctly detected and implemented (using existing or Zustand default)
 - Styling approach correctly detected and used (using existing or SCSS default)
 - Authentication implemented using detected approach (using existing or custom API default)
-- Frontend implementation follows framework-appropriate best practices
-- Next.js patterns match the installed version and router structure (App Router vs Pages Router)
-- TypeScript types are properly defined (no 'any' types)
+
+**Common criteria (both technologies):**
+- TypeScript types are properly defined (no 'any' types, strict mode)
 - Components are responsive and accessible (WCAG 2.1 AA)
 - Error handling and loading states are implemented
 - Code follows project conventions and style guide
-- Basic component tests are included
+- Frontend implementation follows framework-appropriate best practices
+- Basic component/unit tests are included
 
 ### Phase 3 Criteria
 - Comprehensive security audit completed
@@ -291,9 +367,16 @@ Please review the implementation and security findings.
 - STOPS if critical information is missing and requests user clarification
 
 ### Phase 2 (Development)
-- Frontend developer agent automatically detects framework and version from package.json
-- Next.js patterns are applied only when Next.js is detected in the project
-- Implementation adapts to App Router (app/) or Pages Router (pages/) structure
+- **Technology detection is mandatory FIRST**: Check package.json for @angular/core (Angular) or react/next (React/Next.js)
+- **Ambiguity handling**: If both frameworks found, STOP and ask user which to use
+- **Missing indicators**: If no clear framework found, STOP and ask user which technology to use
+- **Angular projects**: Use angular-developer agent with Angular-specific patterns
+  - Detects Angular version and architecture (standalone vs NgModule)
+  - Applies version-appropriate patterns (signals for 16+, control flow for 17+)
+  - Uses OnPush change detection, proper subscription management
+- **React/Next.js projects**: Use frontend-developer agent with React-specific patterns
+  - Detects Next.js version and router type (App Router vs Pages Router)
+  - Applies framework-specific patterns based on detection
 - Always detect and respect existing tooling (state management, styling, authentication)
 - Continue with detected approaches for consistency, even if different from preferred stack
 - Inform user about alternative tool benefits only when they provide clear, specific advantages

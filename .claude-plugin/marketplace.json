@@ -28,12 +28,13 @@
     {
       "name": "frontend-mobile-development",
       "source": "./plugins/frontend-mobile-development",
-      "description": "Frontend UI development and mobile application implementation across platforms",
+      "description": "Frontend UI development and mobile application implementation across platforms (React, Next.js, Angular, React Native, Flutter)",
       "version": "0.0.2",
       "category": "development",
       "strict": false,
       "agents": [
         "./agents/frontend-developer.md",
+        "./agents/angular-developer.md",
         "./agents/mobile-developer.md"
       ]
     },
