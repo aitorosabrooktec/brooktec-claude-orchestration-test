@@ -87,6 +87,9 @@
       "strict": false,
       "agents": [
         "./agents/dependency-health-checker.md"
+      ],
+      "commands": [
+        "./commands/check-dependencies.md"
       ]
     }
   ]
