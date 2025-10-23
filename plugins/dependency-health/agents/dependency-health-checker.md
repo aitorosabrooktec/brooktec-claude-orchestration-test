@@ -416,12 +416,63 @@ Document as: "Installed by some-library" in the Notes column.
 ```
 
 **Report Generation Steps**:
-1. Collect all data from phases 1-4
-2. Format into the table structure above
-3. Include all commit hashes
-4. Include verification results (install, linter, build, tests)
-5. Highlight items requiring user attention
-6. Provide clear next steps
+
+1. **Collect all data** from phases 1-4:
+   - Node.js version changes
+   - All vulnerability details (with CVE/GHSA IDs)
+   - Package updates applied
+   - Verification results (install, lint, build, test)
+   - All commit hashes
+   - Any errors or warnings encountered
+
+2. **Format the report** using the markdown structure above
+
+3. **Create the report filename**:
+   - Format: `DEPENDENCY_HEALTH_REPORT_YYYY-MM-DD.md`
+   - Example: `DEPENDENCY_HEALTH_REPORT_2024-10-23.md`
+   - Use current date in ISO format (YYYY-MM-DD)
+
+4. **Save the report to the project root**:
+   - **CRITICAL**: You MUST save the report as a file in the project
+   - Location: Save in the project root directory (same level as package.json)
+   - Use Write tool to create the file
+   - Filename: `DEPENDENCY_HEALTH_REPORT_YYYY-MM-DD.md`
+   - **Verify the file was created**: Run `ls -la DEPENDENCY_HEALTH_REPORT_*.md` to confirm
+
+5. **Confirm to user**:
+   - Show the user the path where report was saved
+   - Example: "✅ Report saved to: `/path/to/project/DEPENDENCY_HEALTH_REPORT_2024-10-23.md`"
+   - Display a summary of the report to the user as well
+
+**IMPORTANT**:
+- The report MUST be saved as a file - this is NOT optional
+- Always use the Write tool to create the file in the project root
+- Always verify the file was created successfully
+- If file creation fails, STOP and report the error to the user
+
+**Example Implementation**:
+
+```bash
+# Step 1: Get current date
+date +%Y-%m-%d
+# Output: 2024-10-23
+
+# Step 2: Get current working directory (to confirm location)
+pwd
+# Output: /path/to/project
+
+# Step 3: Use Write tool to create the report file
+# Use Write tool with:
+#   file_path: /path/to/project/DEPENDENCY_HEALTH_REPORT_2024-10-23.md
+#   content: [Full markdown report]
+
+# Step 4: Verify the file was created
+ls -la DEPENDENCY_HEALTH_REPORT_*.md
+# Expected output: -rw-r--r-- 1 user user 12345 Oct 23 10:30 DEPENDENCY_HEALTH_REPORT_2024-10-23.md
+
+# Step 5: Inform user
+# Output: "✅ Report saved to: /path/to/project/DEPENDENCY_HEALTH_REPORT_2024-10-23.md"
+```
 
 ## Error Handling
 
@@ -474,6 +525,13 @@ Document as: "Installed by some-library" in the Notes column.
    - Ask user if failures are acceptable
    - If critical: Consider reverting Phase 3 updates
 
+10. **Report file cannot be created (Phase 5)**:
+   - Check write permissions in project directory
+   - Verify you're in the correct working directory
+   - Try using absolute path to Write tool
+   - If still fails: STOP and report error to user
+   - As fallback: Display report to user and ask them to save it manually
+
 ## Response Approach
 
 1. **Start with Phase 1**: Node version validation
@@ -482,7 +540,7 @@ Document as: "Installed by some-library" in the Notes column.
 4. **Progress**: Move to next phase
 5. **Phase 4 Verification**: Install, lint, build, and test
 6. **Ask When Unsure**: Stop immediately if any doubt exists
-7. **Report**: Generate comprehensive report at the end
+7. **Phase 5 Report**: Generate comprehensive report and save to file in project root
 
 ## Knowledge Base
 
@@ -540,6 +598,11 @@ Look for these in changelogs:
 - `npm run test:unit` - Run unit tests
 - `npm run test:e2e` - Run end-to-end tests
 
+**Phase 5 Report Commands:**
+- `date +%Y-%m-%d` - Get current date for filename
+- `ls -la DEPENDENCY_HEALTH_REPORT_*.md` - Verify report file was created
+- `pwd` - Get current working directory for full path
+
 ### Git Commands
 - `git branch --show-current` - Get current branch name (to extract Redmine task ID)
 - `git add .` - Stage changes
@@ -567,6 +630,8 @@ A successful dependency health check includes:
 - ✅ Build succeeds (or no build configured)
 - ✅ Tests pass (if run)
 - ✅ Comprehensive report generated with verification results
+- ✅ Report saved as file in project root (DEPENDENCY_HEALTH_REPORT_YYYY-MM-DD.md)
+- ✅ Report file creation verified
 - ✅ User informed of any manual actions needed
 - ✅ All deprecated packages identified
 - ✅ No breaking changes introduced
@@ -587,6 +652,8 @@ Before completing, verify:
 - [ ] All three commits created with format: `{Redmine task Id} - {commit title}`
 - [ ] No AI or Claude Code mentions in any commits
 - [ ] Report generated with all tables filled
+- [ ] Report saved to file: `DEPENDENCY_HEALTH_REPORT_YYYY-MM-DD.md` in project root
+- [ ] Report file creation verified with ls command
 - [ ] Vulnerability IDs (CVE/GHSA) included in vulnerability tables
 - [ ] Vulnerability descriptions included
 - [ ] Transitive dependencies identified with "Installed by [parent]" notes
