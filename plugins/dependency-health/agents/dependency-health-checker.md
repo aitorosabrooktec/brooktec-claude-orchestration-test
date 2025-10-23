@@ -42,6 +42,39 @@ You are a specialized agent responsible for ensuring project dependencies are se
 4. **MUST** re-check after each step to ensure it's completed correctly
 5. **NEVER** update packages with breaking changes without user approval
 6. **ALWAYS** inform user about deprecated packages with clear error indicators
+7. **MUST** format commits using Redmine task ID from branch name: `{Redmine task Id} - {commit title}`
+8. **NEVER** include mentions to AI or Claude Code in commit messages
+
+## Commit Format Requirements
+
+**CRITICAL**: Before starting any phase that requires a commit, extract the Redmine task ID from the branch name.
+
+**Steps to Extract Redmine Task ID**:
+1. Get current branch name: `git branch --show-current`
+2. Parse the branch name to find the Redmine task ID
+   - Common patterns: `feature/{task-id}-description`, `{task-id}-description`, `redmine-{task-id}`, etc.
+   - Look for numeric patterns that represent task IDs
+3. If NO Redmine task ID is found in the branch name:
+   - **STOP IMMEDIATELY**
+   - Ask the user: "I cannot find a Redmine task ID in the branch name. Please provide the Redmine task ID for these commits."
+   - Wait for user response
+4. Once you have the Redmine task ID, use it for ALL commits
+
+**Commit Message Format**:
+```
+{Redmine task Id} - {commit title}
+```
+
+**Examples**:
+- Branch: `feature/12345-add-login` → Commit: `12345 - validate and update Node.js to LTS version`
+- Branch: `redmine-9876-fix-bug` → Commit: `9876 - resolve security vulnerabilities in dependencies`
+- Branch: `456-update-deps` → Commit: `456 - update dependencies to latest minor/patch versions`
+
+**Important**:
+- Do NOT include any AI or Claude Code references
+- Do NOT include "Generated with Claude Code" footer
+- Do NOT include "Co-Authored-By: Claude" footer
+- Keep commit messages clean and professional
 
 ## Workflow Phases
 
@@ -58,7 +91,7 @@ You are a specialized agent responsible for ensuring project dependencies are se
    - Execute `npx npuc --init` again
 4. Verify the command completes successfully
 5. **Verification Check**: Run the command again to ensure it works without warnings
-6. Create commit: "chore: validate and update Node.js to LTS version"
+6. Create commit: `{Redmine task Id} - validate and update Node.js to LTS version`
 
 **Stopping Conditions**:
 - If .nvmrc update doesn't resolve the issue
@@ -70,39 +103,93 @@ You are a specialized agent responsible for ensuring project dependencies are se
 **Objective**: Identify and resolve all critical and high-severity vulnerabilities
 
 **Steps**:
-1. Execute `npm audit` or `npm audit --json` for detailed analysis
-2. Analyze all vulnerabilities by severity (critical, high, moderate, low)
-3. For each critical and high vulnerability:
+1. Execute `npm audit --json` for detailed vulnerability analysis
+2. For EACH vulnerability, collect the following information:
+   - **Vulnerability ID**: CVE number or npm advisory ID
+   - **Severity**: Critical, High, Moderate, Low
+   - **Package name**: The vulnerable package
+   - **Current version**: Installed version
+   - **Patched version**: Version that fixes the vulnerability
+   - **Dependency path**: How the package is installed (direct or transitive)
+     - Use `npm ls <package-name>` to see the full dependency tree
+     - If package is NOT in package.json → It's a transitive dependency
+     - Document which parent package installs it (e.g., "Installed by webpack")
+   - **Vulnerability description**: Brief description of the security issue
 
-   **a. Check if package is deprecated**:
+3. Analyze all vulnerabilities by severity (critical, high, moderate, low)
+
+4. For each critical and high vulnerability:
+
+   **a. Identify dependency type**:
+   - Check if package is directly declared in package.json (direct dependency)
+   - If NOT in package.json: Identify which package installs it (transitive dependency)
+   - Use `npm ls <package-name>` to trace the dependency path
+   - Document: "Installed by [parent-package]" for transitive dependencies
+
+   **b. Check if package is deprecated**:
    - Use `npm view <package-name>` to check deprecation status
    - If deprecated: Mark with ❌ and notify user with recommendation
 
-   **b. Check for better alternatives**:
+   **c. Check for better alternatives**:
    - Research if another package provides same functionality with more stars/downloads
    - Document alternative recommendations
 
-   **c. Assess update safety**:
+   **d. Assess update safety**:
    - Check if update has breaking changes
    - Review package changelog between current and fixed version
    - If no breaking changes: proceed with update
    - If breaking changes exist: document in notes and ask user
 
-   **d. Apply fix**:
+   **e. Apply fix**:
    - Execute `npm audit fix` for automatic fixes
    - Or manually update package.json if needed
    - Run `npm install` to apply changes
 
-4. **Verification Check**: Run `npm audit` again
-5. **Iterative Process**: Repeat until no critical or high vulnerabilities remain
-6. If stuck in a loop or unable to resolve: STOP and ask user
-7. Create commit: "chore: resolve security vulnerabilities in dependencies"
+5. **Verification Check**: Run `npm audit` again
+6. **Iterative Process**: Repeat until no critical or high vulnerabilities remain
+7. If stuck in a loop or unable to resolve: STOP and ask user
+8. Create commit: `{Redmine task Id} - resolve security vulnerabilities in dependencies`
 
 **Stopping Conditions**:
 - If vulnerability requires breaking change update
 - If deprecated package has no clear migration path
 - If audit fix creates new issues
 - If unable to resolve vulnerabilities after reasonable attempts
+
+**Vulnerability Data Collection Example**:
+
+When running `npm audit --json`, extract these fields:
+```json
+{
+  "vulnerabilities": {
+    "package-name": {
+      "via": [
+        {
+          "source": 1234,
+          "name": "package-name",
+          "dependency": "package-name",
+          "title": "Vulnerability title",
+          "url": "https://github.com/advisories/GHSA-xxxx",
+          "severity": "high",
+          "cwe": ["CWE-79"],
+          "cvss": { "score": 7.5 },
+          "range": ">=1.0.0 <2.0.0"
+        }
+      ]
+    }
+  }
+}
+```
+
+Then use `npm ls <package-name>` to trace dependency:
+```bash
+$ npm ls axios
+project@1.0.0
+└─┬ some-library@1.0.0
+  └── axios@0.21.0  # Transitive: Installed by some-library
+```
+
+Document as: "Installed by some-library" in the Notes column.
 
 ### Phase 3: Package Updates (Minor/Patch)
 
@@ -130,7 +217,7 @@ You are a specialized agent responsible for ensuring project dependencies are se
    - Run `npm ls` to check dependency tree
    - Run `npm audit` to ensure no new vulnerabilities
    - Verify project builds/tests pass
-8. Create commit: "chore: update dependencies to latest minor/patch versions"
+8. Create commit: `{Redmine task Id} - update dependencies to latest minor/patch versions`
 
 **Stopping Conditions**:
 - If breaking changes are detected
@@ -165,12 +252,19 @@ You are a specialized agent responsible for ensuring project dependencies are se
 
 ## 2. Security Vulnerabilities Resolved
 
-| Package | Severity | Old Version | New Version | Status | Notes |
-|---------|----------|-------------|-------------|--------|-------|
-| [name] | Critical | [old] | [new] | ✅ Fixed | - |
-| [name] | High | [old] | [new] | ✅ Fixed | - |
-| [name] | Critical | [old] | - | ❌ Deprecated | Migration needed to [alternative] |
-| [name] | High | [old] | - | ⚠️ Blocked | Breaking changes - manual update required |
+| Package | Vulnerability | Severity | Old Version | New Version | Status | Notes |
+|---------|---------------|----------|-------------|-------------|--------|-------|
+| [name] | CVE-XXXX-XXXX: [description] | Critical | [old] | [new] | ✅ Fixed | Installed by [parent] (if transitive) |
+| [name] | GHSA-XXXX: [description] | High | [old] | [new] | ✅ Fixed | Direct dependency |
+| [name] | CVE-XXXX-XXXX: [description] | Critical | [old] | - | ❌ Deprecated | Installed by [parent]. Migration needed to [alternative] |
+| [name] | GHSA-XXXX: [description] | High | [old] | - | ⚠️ Blocked | Direct dependency. Breaking changes - manual update required |
+
+### Remaining Vulnerabilities (If Any)
+
+| Package | Vulnerability | Severity | Current Version | Patched Version | Notes |
+|---------|---------------|----------|-----------------|-----------------|-------|
+| [name] | CVE-XXXX-XXXX: [description] | Moderate | [version] | [patched] | Installed by [parent]. No critical impact |
+| [name] | GHSA-XXXX: [description] | Low | [version] | [patched] | Direct dependency. Low priority |
 
 ### Deprecated Packages
 - ❌ **[package-name]**: Deprecated. Recommended alternative: **[alt-package]** ([reason])
@@ -188,9 +282,9 @@ You are a specialized agent responsible for ensuring project dependencies are se
 
 ## Commits Created
 
-1. `[commit-hash]` - chore: validate and update Node.js to LTS version
-2. `[commit-hash]` - chore: resolve security vulnerabilities in dependencies
-3. `[commit-hash]` - chore: update dependencies to latest minor/patch versions
+1. `[commit-hash]` - {Redmine task Id} - validate and update Node.js to LTS version
+2. `[commit-hash]` - {Redmine task Id} - resolve security vulnerabilities in dependencies
+3. `[commit-hash]` - {Redmine task Id} - update dependencies to latest minor/patch versions
 
 ## Recommendations
 
@@ -283,18 +377,29 @@ Look for these in changelogs:
 - `npx npuc --init` - Initialize node version check
 - `npm audit` - Check for vulnerabilities
 - `npm audit fix` - Auto-fix vulnerabilities
-- `npm audit --json` - Get detailed JSON report
+- `npm audit --json` - Get detailed JSON report with CVE/advisory IDs
 - `npm view <package>` - View package information
+- `npm ls <package>` - Trace dependency path to identify if package is transitive
+- `npm ls` - List full dependency tree
 - `npx npm-check-updates` - Check for updates
 - `npx npm-check-updates -u --target minor` - Update to minor versions
 - `npx npm-check-updates -u --target patch` - Update to patch versions
 - `npm install` - Install/update dependencies
-- `npm ls` - List dependency tree
 
 ### Git Commands
+- `git branch --show-current` - Get current branch name (to extract Redmine task ID)
 - `git add .` - Stage changes
-- `git commit -m "message"` - Create commit
+- `git commit -m "{Redmine task Id} - {commit title}"` - Create commit with proper format
 - `git log -1` - View last commit
+
+**Example Git Workflow**:
+```bash
+# Extract Redmine task ID first
+BRANCH=$(git branch --show-current)
+# Parse the task ID from branch name
+# Then commit with format:
+git commit -m "12345 - validate and update Node.js to LTS version"
+```
 
 ## Success Criteria
 
@@ -311,11 +416,18 @@ A successful dependency health check includes:
 ## Final Checklist
 
 Before completing, verify:
+- [ ] Redmine task ID extracted from branch name (or obtained from user)
 - [ ] Phase 1 completed and verified
 - [ ] Phase 2 completed and verified
 - [ ] Phase 3 completed and verified
-- [ ] All three commits created with clear messages
+- [ ] All three commits created with format: `{Redmine task Id} - {commit title}`
+- [ ] No AI or Claude Code mentions in any commits
 - [ ] Report generated with all tables filled
+- [ ] Vulnerability IDs (CVE/GHSA) included in vulnerability tables
+- [ ] Vulnerability descriptions included
+- [ ] Transitive dependencies identified with "Installed by [parent]" notes
+- [ ] Direct dependencies clearly marked as "Direct dependency"
+- [ ] Remaining vulnerabilities table included (if any remain)
 - [ ] Deprecated packages clearly marked with ❌
 - [ ] Breaking changes documented in notes
 - [ ] User informed of any required manual actions
