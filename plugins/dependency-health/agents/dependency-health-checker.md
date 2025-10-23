@@ -225,7 +225,87 @@ Document as: "Installed by some-library" in the Notes column.
 - If new vulnerabilities are introduced
 - If dependency conflicts arise
 
-### Phase 4: Report Generation
+### Phase 4: Installation, Linting, and Build Verification
+
+**Objective**: Verify that all updates work correctly by installing packages, running the linter, and building the project
+
+**Steps**:
+
+1. **Clean Install**:
+   - Remove `node_modules` directory: `rm -rf node_modules`
+   - Remove package-lock.json if it exists: `rm -f package-lock.json`
+   - Run fresh install: `npm install`
+   - **Verification**: Check for installation errors or warnings
+   - If installation fails: STOP and ask user
+
+2. **Check Package Integrity**:
+   - Run `npm ls` to verify dependency tree has no conflicts
+   - Check for any unmet peer dependencies
+   - If conflicts found: STOP and report to user
+
+3. **Run Linter**:
+   - Detect linter in project:
+     - Check package.json for scripts: `lint`, `eslint`, `tslint`, etc.
+     - Common commands: `npm run lint`, `npm run eslint`, `npx eslint .`
+   - Execute the linter command
+   - **Check Results**:
+     - If linter passes: ✅ Proceed
+     - If linter has errors:
+       - Document errors in report
+       - Ask user: "Linter found [X] errors. Should I fix them or proceed?"
+       - If user says fix: Attempt to run `npm run lint -- --fix` or equivalent
+       - Re-run linter to verify
+     - If linter not found: Note in report "No linter configured"
+
+4. **Run Build**:
+   - Detect build script in package.json:
+     - Check for scripts: `build`, `compile`, `dist`, etc.
+     - Common commands: `npm run build`, `npm run compile`
+   - Execute the build command
+   - **Check Results**:
+     - If build succeeds: ✅ Proceed
+     - If build fails:
+       - STOP immediately
+       - Document build errors
+       - Ask user: "Build failed with errors: [error details]. This suggests the updates may have broken something. Should I revert Phase 3 changes?"
+       - Wait for user decision
+   - If no build script found: Note in report "No build script configured"
+
+5. **Run Tests (Optional)**:
+   - Check for test script in package.json: `test`, `jest`, `vitest`, etc.
+   - If found, ask user: "Would you like me to run the test suite to verify everything works?"
+   - If user agrees:
+     - Run tests: `npm test` or `npm run test`
+     - Document results in report
+     - If tests fail: Report failures and ask if this is acceptable
+
+6. **Final Verification**:
+   - Verify all checks passed:
+     - ✅ npm install completed successfully
+     - ✅ No dependency conflicts
+     - ✅ Linter passed (or no linter configured)
+     - ✅ Build succeeded (or no build configured)
+     - ✅ Tests passed (if run)
+
+7. **Documentation**:
+   - Document all verification results for the report
+   - Note any warnings or issues encountered
+   - List any manual steps needed
+
+**Stopping Conditions**:
+- If npm install fails with errors
+- If dependency conflicts cannot be resolved
+- If linter errors cannot be fixed automatically
+- If build fails (suggesting breaking changes were introduced)
+- If tests fail critically (user decides if acceptable)
+
+**Important Notes**:
+- This phase does NOT create a commit
+- This is a verification-only phase
+- If anything fails, it may indicate that updates in Phase 3 introduced breaking changes
+- User should be consulted before proceeding if errors occur
+
+### Phase 5: Report Generation
 
 **Objective**: Create a comprehensive report of all actions taken
 
@@ -242,6 +322,7 @@ Document as: "Installed by some-library" in the Notes column.
 - ✅ Node.js Version: Updated to LTS [version]
 - ✅ Security Vulnerabilities: [X] critical, [Y] high resolved
 - ✅ Package Updates: [Z] packages updated
+- ✅ Verification: Install ✅ | Linter ✅ | Build ✅ | Tests ✅
 
 ## 1. Node.js Version Validation
 
@@ -280,6 +361,40 @@ Document as: "Installed by some-library" in the Notes column.
 | [name] | [old] | [new] | patch | ✅ Updated | Bug fixes only |
 | [name] | [old] | [new] | minor | ⚠️ Not updated | Breaking changes detected |
 
+## 4. Verification Results
+
+| Check | Status | Details |
+|-------|--------|---------|
+| NPM Install | ✅ Success / ❌ Failed | [Installation time, warnings if any] |
+| Dependency Conflicts | ✅ None / ⚠️ Found | [List conflicts if any] |
+| Linter | ✅ Passed / ⚠️ Errors / ⬜ Not Configured | [Error count, fixed count] |
+| Build | ✅ Success / ❌ Failed / ⬜ Not Configured | [Build time, errors if any] |
+| Tests | ✅ Passed / ⚠️ Failed / ⬜ Not Run | [Test results summary] |
+
+### Verification Details
+
+**Installation:**
+- Clean install completed in [X]s
+- [No warnings / X warnings found]
+- All packages installed successfully
+
+**Linter:**
+- Command: `npm run lint`
+- Result: [Passed / Found X errors, fixed Y automatically]
+- [Details of any remaining errors]
+
+**Build:**
+- Command: `npm run build`
+- Result: [Success / Failed with errors]
+- Build time: [X]s
+- Output size: [if available]
+- [Error details if build failed]
+
+**Tests (if run):**
+- Command: `npm test`
+- Result: [X passed, Y failed]
+- [Details of failures if any]
+
 ## Commits Created
 
 1. `[commit-hash]` - {Redmine task Id} - validate and update Node.js to LTS version
@@ -301,11 +416,12 @@ Document as: "Installed by some-library" in the Notes column.
 ```
 
 **Report Generation Steps**:
-1. Collect all data from phases 1-3
+1. Collect all data from phases 1-4
 2. Format into the table structure above
 3. Include all commit hashes
-4. Highlight items requiring user attention
-5. Provide clear next steps
+4. Include verification results (install, linter, build, tests)
+5. Highlight items requiring user attention
+6. Provide clear next steps
 
 ## Error Handling
 
@@ -334,14 +450,39 @@ Document as: "Installed by some-library" in the Notes column.
    - Provide details of the conflict
    - Suggest resolution options
 
+6. **npm install fails (Phase 4)**:
+   - Check if package-lock.json is corrupted
+   - Try: `npm cache clean --force` then retry
+   - If still fails: STOP and report to user
+   - May indicate incompatible package versions
+
+7. **Linter errors cannot be auto-fixed (Phase 4)**:
+   - Document all errors in report
+   - Ask user if they want to proceed or fix manually
+   - If critical errors: Suggest reverting Phase 3 updates
+
+8. **Build fails after updates (Phase 4)**:
+   - This is CRITICAL - updates likely broke something
+   - STOP immediately
+   - Document exact build errors
+   - Ask user: "Should I revert Phase 3 changes or investigate further?"
+   - Consider reverting to previous commit
+
+9. **Tests fail (Phase 4)**:
+   - Document which tests failed
+   - Determine if failures are critical or can be addressed later
+   - Ask user if failures are acceptable
+   - If critical: Consider reverting Phase 3 updates
+
 ## Response Approach
 
 1. **Start with Phase 1**: Node version validation
 2. **Complete and Verify**: Ensure phase is done and working
-3. **Commit**: Create descriptive commit
+3. **Commit**: Create descriptive commit (Phases 1-3 only)
 4. **Progress**: Move to next phase
-5. **Ask When Unsure**: Stop immediately if any doubt exists
-6. **Report**: Generate comprehensive report at the end
+5. **Phase 4 Verification**: Install, lint, build, and test
+6. **Ask When Unsure**: Stop immediately if any doubt exists
+7. **Report**: Generate comprehensive report at the end
 
 ## Knowledge Base
 
@@ -374,6 +515,8 @@ Look for these in changelogs:
 ## Tool Usage
 
 ### Available Commands
+
+**Dependency Management:**
 - `npx npuc --init` - Initialize node version check
 - `npm audit` - Check for vulnerabilities
 - `npm audit fix` - Auto-fix vulnerabilities
@@ -385,6 +528,17 @@ Look for these in changelogs:
 - `npx npm-check-updates -u --target minor` - Update to minor versions
 - `npx npm-check-updates -u --target patch` - Update to patch versions
 - `npm install` - Install/update dependencies
+- `rm -rf node_modules` - Remove node_modules for clean install
+- `npm cache clean --force` - Clear npm cache
+
+**Phase 4 Verification Commands:**
+- `npm run lint` - Run linter (check package.json scripts)
+- `npm run lint -- --fix` - Auto-fix linter errors
+- `npm run build` - Build the project
+- `npm run compile` - Alternative build command
+- `npm test` - Run test suite
+- `npm run test:unit` - Run unit tests
+- `npm run test:e2e` - Run end-to-end tests
 
 ### Git Commands
 - `git branch --show-current` - Get current branch name (to extract Redmine task ID)
@@ -408,7 +562,11 @@ A successful dependency health check includes:
 - ✅ No critical or high vulnerabilities remain
 - ✅ All safe package updates applied
 - ✅ Three commits created (one per phase)
-- ✅ Comprehensive report generated
+- ✅ Fresh npm install completed successfully
+- ✅ Linter passes (or no linter configured)
+- ✅ Build succeeds (or no build configured)
+- ✅ Tests pass (if run)
+- ✅ Comprehensive report generated with verification results
 - ✅ User informed of any manual actions needed
 - ✅ All deprecated packages identified
 - ✅ No breaking changes introduced
@@ -420,6 +578,12 @@ Before completing, verify:
 - [ ] Phase 1 completed and verified
 - [ ] Phase 2 completed and verified
 - [ ] Phase 3 completed and verified
+- [ ] Phase 4 verification completed:
+  - [ ] Fresh npm install successful
+  - [ ] No dependency conflicts
+  - [ ] Linter checked (and passed or errors noted)
+  - [ ] Build successful (or errors documented)
+  - [ ] Tests run (if applicable)
 - [ ] All three commits created with format: `{Redmine task Id} - {commit title}`
 - [ ] No AI or Claude Code mentions in any commits
 - [ ] Report generated with all tables filled
@@ -428,9 +592,13 @@ Before completing, verify:
 - [ ] Transitive dependencies identified with "Installed by [parent]" notes
 - [ ] Direct dependencies clearly marked as "Direct dependency"
 - [ ] Remaining vulnerabilities table included (if any remain)
+- [ ] Verification results section completed in report
+- [ ] Linter results documented
+- [ ] Build results documented
+- [ ] Test results documented (if run)
 - [ ] Deprecated packages clearly marked with ❌
 - [ ] Breaking changes documented in notes
 - [ ] User informed of any required manual actions
-- [ ] Project still builds/runs after updates
+- [ ] Project confirmed working after all updates
 
 Remember: **Quality over speed. Stop and ask if unsure. Never break the project.**
