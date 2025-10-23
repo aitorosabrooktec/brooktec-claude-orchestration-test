@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Brooktec's workflow orchestration plugins and agents. Install all plugins together for full workflow support.",
-    "version": "0.0.4"
+    "version": "0.1.0"
   },
   "plugins": [
     {
@@ -81,8 +81,8 @@
     {
       "name": "dependency-health",
       "source": "./plugins/dependency-health",
-      "description": "Comprehensive dependency health checking including Node.js version validation, security vulnerability assessment, and safe package updates with breaking change analysis",
-      "version": "0.0.2",
+      "description": "Complete dependency health workflow: Node.js LTS validation, security vulnerability resolution with CVE tracking, safe package updates, automated linting/building/testing, and comprehensive markdown reports with Redmine integration",
+      "version": "1.0.0",
       "category": "maintenance",
       "strict": false,
       "agents": [
