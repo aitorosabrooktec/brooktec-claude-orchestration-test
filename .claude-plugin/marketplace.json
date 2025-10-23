@@ -82,7 +82,7 @@
       "name": "dependency-health",
       "source": "./plugins/dependency-health",
       "description": "Comprehensive dependency health checking including Node.js version validation, security vulnerability assessment, and safe package updates with breaking change analysis",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "category": "maintenance",
       "strict": false,
       "agents": [
