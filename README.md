@@ -7,7 +7,7 @@ Comprehensive workflow orchestration plugins and agents for frontend development
 This marketplace provides a complete frontend development workflow that includes:
 - Project setup and validation
 - Requirements review
-- Framework-aware development (React/Next.js)
+- Framework-aware development (Angular, React)
 - Security auditing
 - Pull request management with Redmine integration
 
@@ -32,7 +32,8 @@ This marketplace provides a complete frontend development workflow that includes
 **Expert agents for frontend and mobile development**
 
 - **Agents**:
-  - `frontend-developer` - React/Next.js expert with framework detection and adaptation
+  - `frontend-developer` - React expert with framework detection and adaptation
+  - `angular-developer` - Angular expert with version-aware patterns and RxJS
   - `mobile-developer` - React Native and Flutter expert
 
 ### 3. security-compliance (Security Agents)
@@ -122,12 +123,22 @@ This will execute a 4-phase workflow:
    - Requests clarification if needed
 
 #### Phase 2: Development
-3. **Feature Implementation** (`frontend-developer` agent from frontend-mobile-development plugin):
-   - Detects framework (Next.js version and router, or standard React)
+3. **Feature Implementation** (framework-specific agent from frontend-mobile-development plugin):
+   - Detects framework (Angular, React, or Mobile)
+   - Routes to appropriate agent (angular-developer, frontend-developer, or mobile-developer)
    - Detects and adapts to existing tooling (state management, styling, auth)
    - Implements feature with proper TypeScript types
    - Ensures accessibility (WCAG 2.1 AA)
    - Includes tests
+
+#### Phase 2.5: Code Quality Review
+3.5. **Code Quality Assessment** (`code-reviewer` agent from shared-agents plugin):
+   - Reviews code structure, patterns, and best practices
+   - Framework-specific checks (Angular/React/Mobile patterns)
+   - TypeScript type safety validation
+   - Performance, testing, and accessibility review
+   - Provides categorized findings with code examples
+   - Identifies improvements before security audit
 
 #### Phase 3: Security Audit
 4. **Security Assessment** (`security-auditor` agent from security-compliance plugin):
@@ -168,15 +179,15 @@ This will execute a comprehensive 6-phase review workflow:
 - Analyzes project structure and configuration files
 - Identifies languages, frameworks, and architectural patterns
 - Detects:
-  - Frontend stack (React, Next.js, Vue, Angular, etc.)
-  - Backend stack (Express, NestJS, FastAPI, Django, etc.)
+  - Frontend stack (Angular, React, Vue, etc.)
+  - Backend stack (Node.js/Express, NestJS, FastAPI, Django, etc.)
   - State management (Redux, Zustand, Jotai, etc.)
   - Styling approach (Tailwind, SCSS, styled-components, etc.)
   - Testing frameworks (Jest, Vitest, Pytest, etc.)
 - Provides technology-specific review focus areas
 
 #### Phase 3: Code Quality Review
-**Uses `pr-reviewer` agent**:
+**Uses `code-reviewer` agent from shared-agents plugin**:
 - Reviews all changed files with technology-specific lens
 - Analyzes:
   - Code quality and readability
@@ -247,12 +258,12 @@ The review generates:
 
 ## Frontend Developer Agent Features
 
-The `frontend-developer` agent provides intelligent framework and tooling detection:
+The development agents provide intelligent framework and tooling detection:
 
 ### Framework Detection
-- **React Detection**: Checks for React in package.json
-- **Next.js Detection**: Checks for Next.js and determines version
-- **Router Detection**: Identifies App Router (`app/`) vs Pages Router (`pages/`)
+- **Angular Detection** (`angular-developer`): Checks for @angular/core, detects version and architecture (standalone vs NgModule)
+- **React Detection** (`frontend-developer`): Checks for React in package.json, detects version and patterns
+- **Mobile Detection** (`mobile-developer`): Detects React Native, Flutter, Expo, Ionic, or native frameworks
 
 ### Tooling Adaptation
 - **State Management**: 
@@ -342,7 +353,36 @@ Pull requests require a Redmine taskId for traceability. Format: `#12345` or `12
 
 ## Version History
 
-### v0.0.3 (Current)
+### v0.0.4 (Current)
+- **ARCHITECTURE REORGANIZATION**: Hybrid plugin structure
+  - Created `shared-agents` plugin for reusable agents
+  - Moved `project-setup` from frontend-orchestration to shared-agents
+  - Moved `technology-detector` from pr-review to shared-agents
+  - Moved and renamed `pr-reviewer` → `code-reviewer` in shared-agents
+  - `pr-review` plugin now has no workflow-specific agents (fully uses shared-agents)
+- **ENHANCED CODE REVIEWER**: Generalized for multiple technologies
+  - Supports React, Angular, Mobile (React Native/Flutter), Node.js/Express
+  - Removed all Next.js-specific references
+  - Added Angular-specific review patterns (OnPush, signals, subscriptions)
+  - Can review PRs, individual files, git diffs, or pre-commit changes
+  - Flexible review contexts (PR review, file review, quality gates)
+- **FRONTEND WORKFLOW ENHANCEMENT**: Added Phase 2.5 Code Quality Review
+  - Integrated `code-reviewer` agent before security audit
+  - Provides code quality feedback early in workflow
+  - Reviews structure, patterns, best practices, and maintainability
+  - Framework-specific checks based on detected technology
+  - Approval checkpoint now reviews both quality (Phase 2.5) and security (Phase 3)
+- **REMOVED NEXT.JS REFERENCES**: Simplified to React-only
+  - Updated all documentation and workflow descriptions
+  - `frontend-developer` now focuses on React patterns
+  - Framework detection simplified (Angular/React/Mobile)
+- **DOCUMENTATION UPDATES**:
+  - Updated CLAUDE.md with hybrid architecture explanation
+  - Added "Why Detailed Prompts in Commands?" section
+  - Updated dependency graphs and plugin organization guidelines
+  - Clarified agent reusability patterns and placement decisions
+
+### v0.0.3
 - **NEW PLUGIN**: `pr-review` - Comprehensive pull request review workflow
   - Added `technology-detector` agent for automatic tech stack detection
   - Added `pr-reviewer` agent for code quality analysis
@@ -357,7 +397,7 @@ Pull requests require a Redmine taskId for traceability. Format: `#12345` or `12
 ### v0.0.2
 - Added Claude project initialization checking
 - Added ESLint configuration validation with warning
-- Enhanced framework detection (Next.js version and router)
+- Enhanced framework detection
 - Added tooling adaptation (state management, styling, auth)
 - Improved git branch validation
 - Added comprehensive security auditing

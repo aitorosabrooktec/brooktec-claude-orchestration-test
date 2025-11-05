@@ -1,11 +1,11 @@
 Orchestrate frontend feature development:
 
-[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend/mobile feature with proper setup validation, clear requirements, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular web, React/Next.js web, or Mobile frameworks), and proceeds with framework-aware implementation using best practices for modern development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. The workflow performs comprehensive security auditing, and then STOPS to request explicit user approval. The user reviews the implementation and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer, frontend-developer, or mobile-developer) automatically detect existing tooling (framework version, state management, styling, authentication, navigation) and adapt accordingly, while informing users about alternative approaches when beneficial.]
+[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend/mobile feature with proper setup validation, clear requirements, code quality assurance, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular web, React web, or Mobile frameworks), and proceeds with framework-aware implementation using best practices for modern development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. After implementation, the workflow performs code quality review to check best practices, patterns, and maintainability, followed by comprehensive security auditing. The workflow then STOPS to request explicit user approval. The user reviews the implementation, code quality findings, and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer, frontend-developer, or mobile-developer) automatically detect existing tooling (framework version, state management, styling, authentication, navigation) and adapt accordingly, while informing users about alternative approaches when beneficial.]
 
 ## Phase 1: Setup & Requirements Validation
 
 ### 1. Project Setup Verification
-- Use Task tool with subagent_type="frontend-orchestration::project-setup"
+- Use Task tool with subagent_type="shared-agents::project-setup"
 - Prompt: "Verify and setup the development environment for the project. 
   
   Claude Project Initialization (FIRST):
@@ -194,6 +194,54 @@ Orchestrate frontend feature development:
 - Context: Validated requirements from Phase 1, existing mobile project structure, mobile framework version and architecture, state management library, navigation approach, styling approach, target platforms (iOS/Android)
 - Action: Implement the complete mobile feature with production-ready code, following mobile development best practices and platform-specific guidelines.
 
+## Phase 2.5: Code Quality Review
+
+### 3.5. Code Quality Assessment & Best Practices Review
+- Use Task tool with subagent_type="shared-agents::code-reviewer"
+- Prompt: "Review the implemented code for quality, maintainability, and best practices.
+
+  Review Context:
+  - Feature: $ARGUMENTS
+  - Implementation: Code from Phase 2 (Development)
+  - Technology: Detected framework (Angular, React, or Mobile)
+  - Scope: All changed files from feature implementation
+
+  Review Focus Areas:
+  - Code structure and organization (component/module architecture)
+  - Design patterns and best practices (framework-specific)
+  - Code quality and readability (naming, formatting, complexity)
+  - TypeScript/Dart usage (type safety, no 'any' types, proper interfaces)
+  - State management patterns (proper usage of detected library)
+  - Error handling and edge cases
+  - Performance considerations (unnecessary re-renders, memory leaks, optimization opportunities)
+  - Component composition and reusability
+  - Testing coverage and quality (unit tests, integration tests)
+  - Accessibility implementation (WCAG 2.1 AA for web, platform accessibility for mobile)
+  - Documentation and code comments (complex logic explanation)
+  - Consistency with existing codebase patterns
+
+  Technology-Specific Checks:
+  - **Angular**: OnPush change detection, proper subscription management, signal usage (if applicable), component lifecycle hooks
+  - **React**: Hook patterns, dependency arrays, memo usage, prop drilling vs context usage
+  - **Mobile**: Platform-specific patterns, performance optimization (FlatList/virtualization), offline support, native integration quality
+
+  Output Requirements:
+  - Categorize findings by severity (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
+  - Provide file:line references for all issues
+  - Include code examples showing current code vs suggested improvements
+  - Explain rationale for each suggestion
+  - Acknowledge good patterns and quality code where present
+  - Focus on actionable improvements (not just identifying problems)
+
+  Important:
+  - This is a PRE-SECURITY code quality review
+  - Do NOT duplicate security findings (security audit happens in Phase 3)
+  - Focus on code structure, patterns, maintainability, and best practices
+  - Be constructive and educational in feedback"
+- Expected output: Comprehensive code quality report with findings categorized by severity, specific file:line references, code examples for improvements, positive highlights of good patterns
+- Context: Implemented feature from Phase 2, detected technology stack, project conventions and patterns
+- Action: Review code quality before security audit. Present findings to user. Allow user to address critical/high priority issues before proceeding to security audit. Findings are informational at this stage (not blocking unless CRITICAL issues found).
+
 ## Phase 3: Security Audit & Compliance
 
 ### 4. Security Audit & Vulnerability Assessment
@@ -247,23 +295,25 @@ Orchestrate frontend feature development:
 
 Present to user:
 - Summary of implemented feature
-- Security audit results (critical/high/medium/low findings)
-- Overall quality assessment
+- Code quality review results (Phase 2.5: critical/high/medium/low findings)
+- Security audit results (Phase 3: critical/high/medium/low findings)
+- Overall assessment (code quality + security combined)
 - Any remaining concerns or recommendations
 
 Ask user:
-"The feature implementation and security audit are complete. 
+"The feature implementation, code quality review, and security audit are complete.
 
 📊 **Summary:**
 - Feature: [Brief description]
-- Security Status: [Status with findings count]
-- Code Quality: [Assessment]
+- Code Quality Status: [X critical, Y high, Z medium findings from Phase 2.5]
+- Security Status: [X critical, Y high, Z medium findings from Phase 3]
+- Overall Assessment: [Ready for PR / Needs attention / Critical issues]
 
-Please review the implementation and security findings.
+Please review the implementation, code quality, and security findings.
 
 ✅ **Approve and Create PR**: Type 'yes', 'approve', or 'continue' to proceed to PR creation
 🔄 **Request Changes**: Type 'no', 'changes needed', or describe what needs to be fixed to return to development phase
-❓ **Need More Info**: Ask questions about the implementation or security findings"
+❓ **Need More Info**: Ask questions about the implementation, code quality, or security findings"
 
 **User Response Handling:**
 - If APPROVED (yes/approve/continue): Proceed to Phase 4 (PR Creation)
@@ -336,12 +386,12 @@ Please review the implementation and security findings.
 - Development server running (existing or newly started)
 - Requirements are clear, complete, and validated
 
-### Phase 2 Criteria
-- **Technology correctly identified**: Angular, React/Next.js, or Mobile framework detected
+### Phase 2 Criteria (Development)
+- **Technology correctly identified**: Angular, React, or Mobile framework detected
 - **Ambiguity resolved**: If unclear, user was asked to specify technology
 - **Appropriate agent used**:
   - angular-developer for Angular web apps
-  - frontend-developer for React/Next.js web apps
+  - frontend-developer for React web apps
   - mobile-developer for mobile apps (React Native, Flutter, Expo, Ionic, Native)
 
 **For Angular web projects:**
@@ -355,9 +405,8 @@ Please review the implementation and security findings.
 - HttpClient used for API integration
 - Angular CDK A11y patterns for accessibility (WCAG 2.1 AA)
 
-**For React/Next.js web projects:**
-- Framework and version correctly detected (Next.js version and router type, or standard React)
-- Next.js patterns match the installed version and router structure (App Router vs Pages Router)
+**For React web projects:**
+- React version and patterns correctly detected
 - State management correctly detected and implemented (using existing or Zustand default)
 - Styling approach correctly detected and used (using existing or SCSS default)
 - Authentication implemented using detected approach (using existing or custom API default)
@@ -382,7 +431,22 @@ Please review the implementation and security findings.
 - Implementation follows framework-appropriate best practices
 - Basic component/unit/integration tests are included
 
-### Phase 3 Criteria
+### Phase 2.5 Criteria (Code Quality Review)
+- Code quality review completed using code-reviewer agent
+- All changed files analyzed for quality and best practices
+- Findings categorized by severity (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
+- File:line references provided for all issues
+- Code examples provided showing current code vs suggested improvements
+- Framework-specific best practices checked (Angular/React/Mobile patterns)
+- TypeScript/Dart type safety validated (no unjustified 'any' types)
+- Component architecture and reusability assessed
+- Performance considerations evaluated
+- Testing coverage reviewed
+- Accessibility patterns verified
+- Code quality report generated and presented to user
+- Critical issues identified for potential fixing before proceeding
+
+### Phase 3 Criteria (Security Audit)
 - Comprehensive security audit completed
 - No critical or high severity vulnerabilities remaining
 - Authentication security validated (token storage, session management, CSRF protection)
@@ -396,8 +460,11 @@ Please review the implementation and security findings.
 - Remediation plan for any medium/low findings documented
 
 ### Approval Checkpoint Criteria
+- Phase 2.5 code quality review completed successfully
 - Phase 3 security audit completed successfully
-- Summary presented to user with all findings
+- Summary presented to user with all findings from both reviews
+- Code quality findings (CRITICAL/HIGH/MEDIUM/LOW) communicated
+- Security findings (CRITICAL/HIGH/MEDIUM/LOW) communicated
 - User explicitly approves to continue (yes/approve/continue)
 - OR user requests changes with specific feedback (returns to Phase 2)
 
@@ -415,12 +482,16 @@ Please review the implementation and security findings.
 
 ### Phase Flow
 - Phase 1 must complete successfully before Phase 2 begins
-- Phase 2 must complete successfully before Phase 3 begins
-- Phase 3 must complete successfully and receive **USER APPROVAL** before Phase 4 begins
+- Phase 2 must complete successfully before Phase 2.5 begins
+- Phase 2.5 must complete successfully before Phase 3 begins
+- Phase 3 must complete successfully before approval checkpoint
 - **APPROVAL CHECKPOINT**: After Phase 3, workflow STOPS and requests user approval
+- User reviews both code quality (Phase 2.5) and security (Phase 3) findings
+- Phase 4 only proceeds with explicit **USER APPROVAL**
 - Any environment issues must be resolved before development starts
 - Requirements clarification is mandatory if any ambiguity exists
 - Development phase proceeds only with validated, clear requirements
+- Code quality review provides feedback before security audit
 - Security audit is mandatory before feature is considered production-ready
 - **User can request changes**: If not approved, workflow returns to Phase 2 with feedback
 - Pull Request creation requires Redmine taskId from user
@@ -442,7 +513,7 @@ Please review the implementation and security findings.
 
 ### Phase 2 (Development)
 - **Technology detection is mandatory FIRST**: Check package.json and project structure for frameworks
-  - **Web frameworks**: @angular/core (Angular), react + next (React/Next.js)
+  - **Web frameworks**: @angular/core (Angular), react (React)
   - **Mobile frameworks**: react-native, expo, @ionic, pubspec.yaml (Flutter), native directories
 - **Ambiguity handling**:
   - If multiple web frameworks found, STOP and ask user which to use
@@ -454,8 +525,8 @@ Please review the implementation and security findings.
     - Detects Angular version and architecture (standalone vs NgModule)
     - Applies version-appropriate patterns (signals for 16+, control flow for 17+)
     - Uses OnPush change detection, proper subscription management
-  - **React/Next.js web projects**: Use frontend-developer agent
-    - Detects Next.js version and router type (App Router vs Pages Router)
+  - **React web projects**: Use frontend-developer agent
+    - Detects React version and patterns
     - Applies framework-specific patterns based on detection
   - **Mobile projects**: Use mobile-developer agent
     - Detects mobile framework (React Native, Flutter, Expo, Ionic, Native)
@@ -466,6 +537,20 @@ Please review the implementation and security findings.
 - Inform user about alternative tool benefits only when they provide clear, specific advantages
 - Provide precise, measurable information about alternative approaches
 - Maintain consistency with existing project patterns and architecture
+
+### Phase 2.5 (Code Quality Review)
+- Uses shared-agents::code-reviewer agent for comprehensive quality assessment
+- Reviews all changed files from Phase 2 implementation
+- Focuses on code structure, patterns, best practices, maintainability
+- Does NOT duplicate security findings (those are in Phase 3)
+- Provides findings categorized by severity (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
+- Includes file:line references and code examples for improvements
+- Framework-specific checks based on detected technology
+- TypeScript/Dart type safety validation
+- Performance, testing, and accessibility review
+- Generates comprehensive report presented to user
+- Critical findings may be addressed before proceeding to Phase 3
+- Informational review (not blocking unless CRITICAL issues)
 
 ### Phase 3 (Security Audit & Approval Checkpoint)
 - Security-auditor agent performs comprehensive frontend security assessment

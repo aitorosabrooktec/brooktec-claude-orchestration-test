@@ -222,12 +222,12 @@ Pass to Phase 3:
 Perform comprehensive code quality analysis with technology-specific best practices.
 
 ### Process
-Invoke the pr-reviewer agent with technology context and changed files.
+Invoke the code-reviewer agent with technology context and changed files.
 
 ### Tool Usage
 ```
 Tool: Task
-Subagent: pr-reviewer
+Subagent: shared-agents::code-reviewer
 Purpose: Analyze code quality, maintainability, and best practices
 ```
 
@@ -685,8 +685,8 @@ A successful PR review workflow:
 ## Integration with Existing Plugins
 
 ### Uses:
-- **technology-detector** (pr-review plugin)
-- **pr-reviewer** (pr-review plugin)
+- **technology-detector** (shared-agents plugin)
+- **code-reviewer** (shared-agents plugin)
 - **security-auditor** (security-compliance plugin)
 
 ### Coordinates With:
