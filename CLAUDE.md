@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Brooktec Claude Code Workflows** marketplace - a collection of specialized plugins and agents that orchestrate comprehensive frontend development workflows. The project provides workflow automation for:
+This is the **Brooktec Claude Code Workflows** marketplace - a collection of specialized plugins and agents that orchestrate comprehensive frontend and backend development workflows. The project provides workflow automation for:
 
 - Project setup and environment validation
 - Requirements review and clarification
-- Framework-aware development (Angular, React, React Native, Flutter)
+- Framework-aware development (Frontend: Angular, React, React Native, Flutter | Backend: Express, NestJS)
 - Security auditing (OWASP Top 10)
+- API testing and integration test generation
 - Pull request management with Redmine integration
 - PR code review with technology detection
 - Dependency health checks
@@ -23,11 +24,15 @@ This is the **Brooktec Claude Code Workflows** marketplace - a collection of spe
 │   │   └── agents/                  # project-setup, technology-detector, code-reviewer, requirements-reviewer
 │   ├── frontend-orchestration/      # Frontend/Mobile workflow orchestrator
 │   │   └── commands/                # frontend-feature command (with --skip-pr flag)
+│   ├── backend-orchestration/       # Backend workflow orchestrator (NEW in v0.0.7)
+│   │   └── commands/                # backend-feature command (with --skip-pr, --skip-tests flags)
 │   ├── test-orchestration/          # Test generation workflow (NEW in v0.0.5)
 │   │   ├── agents/                  # test-generator (workflow-specific)
 │   │   └── commands/                # create-backend-tests command (with flags)
 │   ├── frontend-mobile-development/ # Development agents library
 │   │   └── agents/                  # react-developer, angular-developer, mobile-developer
+│   ├── backend-development/         # Backend development agents library (NEW in v0.0.7)
+│   │   └── agents/                  # node-developer
 │   ├── security-compliance/         # Security agents library
 │   │   └── agents/                  # security-auditor
 │   ├── git-actions/                 # PR management workflow
@@ -89,16 +94,18 @@ Commands follow a phase-based execution model:
 ```
 AGENT LIBRARY PLUGINS (Reusable):
 ├── shared-agents
-│   ├── project-setup (used by: frontend-orchestration, test-orchestration)
-│   ├── technology-detector (used by: frontend-orchestration, test-orchestration, pr-review)
-│   ├── code-reviewer (used by: pr-review, test-orchestration, frontend-orchestration Phase 2.5)
-│   └── requirements-reviewer (used by: frontend-orchestration, test-orchestration) ← MOVED in v0.0.6
+│   ├── project-setup (used by: frontend-orchestration, backend-orchestration, test-orchestration)
+│   ├── technology-detector (used by: frontend-orchestration, backend-orchestration, test-orchestration, pr-review)
+│   ├── code-reviewer (used by: pr-review, test-orchestration, frontend-orchestration Phase 2.5, backend-orchestration Phase 4)
+│   └── requirements-reviewer (used by: frontend-orchestration, backend-orchestration, test-orchestration) ← MOVED in v0.0.6
 ├── frontend-mobile-development
 │   ├── react-developer (used by: frontend-orchestration) ← RENAMED from frontend-developer in v0.0.6
 │   ├── angular-developer (used by: frontend-orchestration)
 │   └── mobile-developer (used by: frontend-orchestration)
+├── backend-development (NEW in v0.0.7)
+│   └── node-developer (used by: backend-orchestration)
 └── security-compliance
-    └── security-auditor (used by: frontend-orchestration, pr-review)
+    └── security-auditor (used by: frontend-orchestration, backend-orchestration, pr-review)
 
 WORKFLOW PLUGINS (User-Facing):
 ├── frontend-orchestration
@@ -108,6 +115,15 @@ WORKFLOW PLUGINS (User-Facing):
 │   ├─> Uses: frontend-mobile-development::{react,angular,mobile}-developer
 │   ├─> Uses: shared-agents::code-reviewer (Phase 2.5 quality gate)
 │   ├─> Uses: security-compliance::security-auditor
+│   └─> Uses: git-actions::create-pull-request command (conditional with --skip-pr)
+├── backend-orchestration (NEW in v0.0.7)
+│   ├─> Uses: shared-agents::project-setup
+│   ├─> Uses: shared-agents::requirements-reviewer
+│   ├─> Uses: shared-agents::technology-detector (detects Express/NestJS)
+│   ├─> Uses: backend-development::node-developer
+│   ├─> Uses: test-orchestration::test-generator (API testing generation)
+│   ├─> Uses: shared-agents::code-reviewer (Phase 4 quality gate)
+│   ├─> Uses: security-compliance::security-auditor (Phase 4)
 │   └─> Uses: git-actions::create-pull-request command (conditional with --skip-pr)
 ├── test-orchestration (NEW in v0.0.5)
 │   ├─> Uses: shared-agents::requirements-reviewer ← ADDED in v0.0.6
@@ -228,16 +244,95 @@ Final recommendation: BLOCKED | REQUEST_CHANGES | COMMENT | APPROVE
 
 **Location**: `plugins/dependency-health/commands/check-dependencies.md`
 
-Four-phase dependency management workflow:
+Five-phase dependency management workflow:
 
 - **Phase 1**: Node.js LTS Version Validation → Commit
 - **Phase 2**: Security Vulnerability Resolution → Commit
 - **Phase 3**: Package Updates (Minor/Patch) → Commit
 - **Phase 4**: Report Generation
+- **Phase 5**: Automated Verification (npm install, lint, build, test)
 
 Creates 3 separate commits for each update phase.
 
-### 4. Backend Test Generation (`/create-backend-tests`) - NEW in v0.0.5
+### 4. Backend Feature Development (`/backend-feature`) - NEW in v0.0.7
+
+**Location**: `plugins/backend-orchestration/commands/backend-feature.md`
+
+Comprehensive backend feature development workflow with API testing, quality review, and security audit.
+
+**Flags**:
+- `--skip-pr`: Skip PR creation (optional)
+- `--skip-tests`: Skip API testing phase (optional)
+
+**Phases**:
+
+- **Phase 1**: Setup & Requirements Validation
+  - Verifies CLAUDE.md exists (stops if missing, directs user to run `/init`)
+  - Validates git branch format: `feature/{taskId}-*` (stops on develop/main)
+  - Checks for uncommitted changes (stops if any exist)
+  - Validates environment (.env from Shadows, node_modules, dev server)
+  - Reviews backend-specific requirements (API specs, business logic, validation rules)
+
+- **Phase 2**: Development (with technology detection)
+  - Uses `shared-agents::technology-detector` for backend framework detection
+  - Detects backend technology (Express or NestJS)
+  - If ambiguous, STOPS and asks user to specify
+  - Detects ORM/ODM (TypeORM, Prisma, Mongoose, Sequelize)
+  - Detects validation library (Joi, class-validator, Zod, yup)
+  - Uses `backend-development::node-developer` for implementation
+  - Implements RESTful API endpoints with validation
+  - Applies authentication/authorization
+  - Implements business logic in service layer
+  - Creates/updates database entities with migrations
+  - Comprehensive error handling and logging
+
+- **Phase 3**: API Testing & Validation (Conditional with --skip-tests)
+  - Uses `test-orchestration::test-generator` for test generation
+  - Generates API integration tests (happy paths, edge cases, error scenarios)
+  - Executes tests with Supertest
+  - All tests must pass before proceeding
+  - Retries up to 3 times on failure
+  - Skipped if --skip-tests flag present or no API endpoints
+
+- **Phase 4**: Quality & Security Review
+  - **Code Quality Review**: Uses `shared-agents::code-reviewer`
+    - Reviews code structure, TypeScript types, error handling
+    - Database query efficiency, API design, maintainability
+    - Framework-specific patterns (Express/NestJS)
+  - **Security Audit**: Uses `security-compliance::security-auditor`
+    - Input validation and sanitization
+    - Injection prevention (SQL, NoSQL, XSS)
+    - Authentication/authorization security
+    - OWASP Top 10 coverage
+    - Sensitive data protection
+
+- **Approval Checkpoint** (after Phase 4)
+  - STOPS and presents implementation summary, test results, code quality findings, security audit
+  - **User has 3 options**:
+    1. **Approve and Create PR**: Proceed to Phase 6 (if --skip-pr not set)
+    2. **Approve without PR**: Finish workflow, skip Phase 6
+    3. **Request Changes**: Return to Phase 2 for modifications
+  - **Does NOT proceed without explicit user approval**
+
+- **Phase 6**: Pull Request Creation (Conditional)
+  - Only executes if: User chose "Approve and create PR" AND --skip-pr flag NOT set
+  - Uses `git-actions::create-pull-request` command
+  - Generates PR content with API endpoints, code quality, security audit results
+  - Links to Redmine task
+
+**Example Usage**:
+```bash
+# Complete backend feature with API testing and PR
+/backend-feature Implement user authentication API with JWT
+
+# Skip API tests (utility functions, no endpoints)
+/backend-feature --skip-tests Implement data export utility functions
+
+# Skip PR creation (manual PR later)
+/backend-feature --skip-pr Implement payment processing API
+```
+
+### 5. Backend Test Generation (`/create-backend-tests`) - NEW in v0.0.5
 
 **Location**: `plugins/test-orchestration/commands/create-backend-tests.md`
 
@@ -314,7 +409,7 @@ Comprehensive test generation workflow for backend code with automatic execution
 
 The system detects technology by examining `package.json` and project structure:
 
-**Web Frameworks** (check package.json):
+**Frontend Web Frameworks** (check package.json):
 - `@angular/core` → Angular web project → Use `angular-developer`
 - `react` (without `react-native`) → React project → Use `react-developer`
 
@@ -325,9 +420,17 @@ The system detects technology by examining `package.json` and project structure:
 - `pubspec.yaml` file → Flutter → Use `mobile-developer`
 - `ios/` and `android/` directories → Native → Use `mobile-developer`
 
+**Backend Frameworks** (check package.json and files):
+- `express` (with `@types/express` or without `@nestjs/core`) → Express.js → Use `node-developer`
+- `@nestjs/core` → NestJS → Use `node-developer`
+- Detects ORM/ODM: `typeorm`, `@prisma/client`, `mongoose`, `sequelize`
+- Detects validation: `joi`, `class-validator`, `zod`, `yup`
+- Detects authentication: JWT, Passport.js, custom implementations
+
 **Ambiguity Handling**:
 - Multiple web frameworks → STOP and ask user
 - Multiple mobile frameworks → STOP and ask user
+- Multiple backend frameworks → STOP and ask user
 - Both web and mobile → STOP and ask user
 - No clear indicators → STOP and ask user
 
@@ -354,6 +457,20 @@ The system detects technology by examining `package.json` and project structure:
 - Detects navigation (React Navigation, Flutter Navigator)
 - Follows platform design guidelines (HIG for iOS, Material for Android)
 - Handles permissions, offline support, app lifecycle
+
+**Backend Projects** (`node-developer`):
+- Detects backend framework (Express.js or NestJS)
+- Applies framework-specific patterns:
+  - **Express**: Router modules, middleware chains, service layer separation
+  - **NestJS**: Controllers, services, modules, guards, pipes, interceptors, DTOs
+- Detects ORM/ODM (TypeORM, Prisma, Mongoose, Sequelize) and applies appropriate patterns
+- Detects validation library (Joi, class-validator, Zod, yup) and uses consistently
+- Detects authentication approach (JWT, Passport.js, session-based) and continues pattern
+- TypeScript strict mode for type safety
+- RESTful API design with proper HTTP methods and status codes
+- Comprehensive error handling and structured logging
+- Input validation and sanitization at API boundaries
+- Security best practices (parameterized queries, rate limiting, security headers)
 
 ## Environment Setup Requirements
 
@@ -396,20 +513,29 @@ Complete workflow installation:
 ```
 @frontend-orchestration
 @frontend-mobile-development
+@backend-orchestration
+@backend-development
 @security-compliance
 @git-actions
 @pr-review
+@test-orchestration
 @dependency-health
 ```
 
 ### Running Workflows
 
 ```bash
-# Complete feature development workflow
+# Frontend feature development workflow
 /frontend-feature Implement user authentication with JWT tokens
+
+# Backend feature development workflow (NEW in v0.0.7)
+/backend-feature Implement user authentication API with JWT
 
 # Review a pull request
 /review-pull-request 42
+
+# Generate backend tests
+/create-backend-tests --target src/services/user.service.ts
 
 # Check dependency health
 /dependency-health::check-dependencies
@@ -582,22 +708,29 @@ https://github.com/brooktec/knowledge-base/
 
 ## Version Management
 
-Current plugin versions (as of v0.0.5):
+Current plugin versions (as of v0.0.7):
 - `shared-agents`: Reusable agents library
-  - project-setup, technology-detector, code-reviewer
+  - project-setup, technology-detector, code-reviewer, requirements-reviewer
   - Used by all workflows for consistency
 - `frontend-orchestration`: Frontend/Mobile workflow orchestrator
   - **Enhanced in v0.0.5**: --skip-pr flag, 3 approval options, uses technology-detector
   - Includes Phase 2.5 code quality review
+- `backend-orchestration`: Backend workflow orchestrator (NEW in v0.0.7)
+  - Complete backend feature workflow with API testing, quality review, security audit
+  - Supports Express.js and NestJS frameworks
+  - Supports --skip-pr and --skip-tests flags
+- `frontend-mobile-development`: Development agents (Angular, React, Mobile)
+- `backend-development`: Backend development agents (NEW in v0.0.7)
+  - node-developer for Express.js and NestJS
+  - Detects and adapts to project ORM/ODM, validation library, authentication approach
 - `test-orchestration`: Test generation workflow (NEW in v0.0.5)
   - Generates unit, integration, and E2E tests for backend code
   - Automatic test execution, coverage analysis, and quality review
   - Supports --target, --type, --coverage-threshold, --skip-pr flags
-- `frontend-mobile-development`: Development agents (Angular, React, Mobile)
 - `security-compliance`: Security auditing
 - `git-actions`: PR management
 - `pr-review`: PR review workflow (uses only shared-agents)
-- `dependency-health`: Dependency management
+- `dependency-health`: Dependency management with automated verification
 
 ## Notes for Claude Code Instances
 

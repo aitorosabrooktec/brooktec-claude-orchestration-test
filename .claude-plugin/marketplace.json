@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Brooktec's workflow orchestration plugins and agents. Install all plugins together for full workflow support.",
-    "version": "0.0.6"
+    "version": "0.0.7"
   },
   "plugins": [
     {
@@ -36,6 +36,17 @@
       ]
     },
     {
+      "name": "backend-orchestration",
+      "source": "./plugins/backend-orchestration",
+      "description": "Backend orchestration workflow with API testing, quality review, and security audit. REQUIRES: shared-agents, backend-development, test-orchestration, security-compliance, and git-actions plugins.",
+      "version": "0.0.1",
+      "category": "workflows",
+      "strict": false,
+      "commands": [
+        "./commands/backend-feature.md"
+      ]
+    },
+    {
       "name": "frontend-mobile-development",
       "source": "./plugins/frontend-mobile-development",
       "description": "Frontend UI development and mobile application implementation across platforms (React, Angular, React Native, Flutter)",
@@ -46,6 +57,17 @@
         "./agents/react-developer.md",
         "./agents/angular-developer.md",
         "./agents/mobile-developer.md"
+      ]
+    },
+    {
+      "name": "backend-development",
+      "source": "./plugins/backend-development",
+      "description": "Backend API development with Node.js, Express, and NestJS frameworks. Implements RESTful APIs, database integration, authentication, and server-side business logic.",
+      "version": "0.0.1",
+      "category": "development",
+      "strict": false,
+      "agents": [
+        "./agents/node-developer.md"
       ]
     },
     {

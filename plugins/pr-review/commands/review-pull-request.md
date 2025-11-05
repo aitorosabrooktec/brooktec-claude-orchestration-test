@@ -1,728 +1,523 @@
-# Review Pull Request Command
+Orchestrate comprehensive pull request review with technology detection, code quality analysis, security auditing, and build verification.
 
-This command orchestrates a comprehensive multi-phase review of a GitHub pull request, including technology detection, code quality analysis, security auditing, and build verification. The review process adapts to the detected technology stack and provides actionable, structured feedback.
+[Extended thinking: This workflow coordinates multiple specialized agents to provide thorough, technology-aware PR reviews. The process adapts to the detected tech stack (React, Angular, Mobile, Node.js backend, Python, etc.) and provides actionable feedback with severity categorization. The review ensures code quality, security compliance (OWASP Top 10), and build verification before providing a final recommendation (APPROVE/REQUEST CHANGES/COMMENT/BLOCKED).]
 
-## Command Purpose
+## Workflow Configuration
 
-Automate and standardize pull request reviews by coordinating multiple specialized agents to ensure:
-- Code quality and maintainability
-- Technology-specific best practices
-- Security compliance (OWASP Top 10)
-- Build and lint verification
-- Consistent review standards
+### Expected Input
 
-## Expected Input
+**Required**:
+- **PR Number**: The pull request number to review (e.g., `42`, `#123`)
 
-The user should provide:
-1. **PR Number** (required): The pull request number to review (e.g., `42`, `#123`)
-2. **Review Focus** (optional): Specific areas to emphasize (`security`, `performance`, `quality`, `all`)
-3. **Repository** (optional): Repository path if not in current directory
+**Optional**:
+- **Review Focus**: Specific areas to emphasize (`--focus=security`, `--focus=performance`, `--focus=quality`, `--focus=all`)
+- **Repository Path**: Repository if not in current directory
 
-**Example invocations:**
-- `/review-pull-request 42`
-- `/review-pull-request #123 --focus=security`
-- `/review-pull-request 89 --focus=all`
-
-## Workflow Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 1: PR Information Gathering                          │
-│  - Fetch PR details, changed files, commits                 │
-│  - Validate PR exists and is accessible                     │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 2: Technology Detection                              │
-│  - Analyze project structure and dependencies               │
-│  - Identify frameworks, languages, patterns                 │
-│  - Generate technology context for review                   │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 3: Code Quality Review                               │
-│  - Analyze code changes with tech-specific lens             │
-│  - Check best practices, patterns, maintainability          │
-│  - Generate structured feedback with examples               │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 4: Security Audit                                    │
-│  - OWASP Top 10 vulnerability scan                          │
-│  - Dependency security check                                │
-│  - Authentication/authorization review                      │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 5: Lint & Build Verification                         │
-│  - Run linting on changed files                             │
-│  - Execute build process                                    │
-│  - Report any errors or warnings                            │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 6: Review Summary & Publishing                       │
-│  - Consolidate all findings                                 │
-│  - Generate comprehensive report                            │
-│  - Post comments to PR (optional)                           │
-│  - Provide final recommendation                             │
-└─────────────────────────────────────────────────────────────┘
+**Example Invocations**:
+```bash
+/review-pull-request 42
+/review-pull-request #123 --focus=security
+/review-pull-request 89 --focus=all --repo=/path/to/repo
 ```
 
-## Phase Definitions
+### Parameter Parsing
+- Extract PR number from $ARGUMENTS (with or without # prefix)
+- Parse --focus flag if present (default: all)
+- Parse --repo flag if present (default: current directory)
+- Validate PR number is valid integer
 
 ---
 
 ## Phase 1: PR Information Gathering
 
-### Objective
-Fetch and validate pull request details, including changed files, commits, and metadata.
+### Step 1. Fetch PR Details
+- Use Bash tool to execute `gh pr view` commands
+- Command: `gh pr view <PR_NUMBER> --json title,author,state,isDraft,additions,deletions,changedFiles,commits,reviews`
+- Expected output: JSON with PR metadata
+- Context: PR number extracted from $ARGUMENTS
+- Action: Parse JSON and store PR details. If PR not found or not accessible, STOP workflow with error message
 
-### Process
-Use bash commands and git operations to gather PR information.
+### Step 2. Get Changed Files List
+- Use Bash tool to execute `gh pr diff` command
+- Command: `gh pr diff <PR_NUMBER> --name-only`
+- Expected output: List of changed file paths
+- Context: PR number
+- Action: Store list of changed files for analysis. If no files changed, STOP workflow (nothing to review)
 
-### Tool Usage
-```
-Tool: Bash
-Purpose: Execute git and gh commands to fetch PR details
-```
+### Step 3. Fetch Full Diff
+- Use Bash tool to execute `gh pr diff` command
+- Command: `gh pr diff <PR_NUMBER>`
+- Expected output: Complete diff of all changes
+- Context: PR number and changed files list
+- Action: Store full diff for code review. Parse diff to identify added/modified/deleted lines
 
-### Actions
-
-1. **Validate PR Number**
-   - Check that PR number is provided
-   - Ensure it's a valid integer
-
-2. **Fetch PR Metadata**
-   ```bash
-   # Using gh CLI if available
-   gh pr view <PR_NUMBER> --json number,title,body,author,state,isDraft,labels,headRefName,baseRefName
-
-   # Fallback: git commands
-   git fetch origin pull/<PR_NUMBER>/head:pr-<PR_NUMBER>
-   git checkout pr-<PR_NUMBER>
-   ```
-
-3. **Get Changed Files**
-   ```bash
-   gh pr diff <PR_NUMBER> --name-only
-   # Or: git diff --name-only origin/<base_branch>...HEAD
-   ```
-
-4. **Get File Changes with Context**
-   ```bash
-   gh pr diff <PR_NUMBER>
-   # Or: git diff origin/<base_branch>...HEAD
-   ```
-
-5. **Collect Commit Information**
-   ```bash
-   gh pr view <PR_NUMBER> --json commits
-   # Or: git log origin/<base_branch>..HEAD --oneline
-   ```
-
-### Expected Output
-- PR metadata (title, description, author, status)
-- List of changed files with line counts
-- Full diff of all changes
-- Commit history for the PR
-
-### Success Criteria
-- PR exists and is accessible
-- Changed files list is not empty
-- Diff is retrieved successfully
-
-### Error Handling
-- **PR Not Found**: Report error, verify PR number and repository
-- **No gh CLI**: Fallback to git commands
-- **Permission Denied**: Check authentication and repository access
-- **Empty Changes**: PR has no file changes, abort review
-
-### Context for Next Phase
-Pass to Phase 2:
-- List of changed files
-- Project root directory
-- Technology hints from file extensions
+### Step 4. Get Commit History
+- Use Bash tool to execute `gh pr view` command
+- Command: `gh pr view <PR_NUMBER> --json commits`
+- Expected output: List of commits in PR
+- Context: PR number
+- Action: Store commit history for context. Extract commit messages for review summary
 
 ---
 
 ## Phase 2: Technology Detection
 
-### Objective
-Analyze the project to identify technologies, frameworks, and architectural patterns for targeted review.
+### Step 1. Analyze Project Technology Stack
+- Use Task tool with subagent_type="shared-agents::technology-detector"
+- Prompt: "Analyze this project to detect the technology stack and architectural patterns.
 
-### Process
-Invoke the technology-detector agent to analyze project structure and dependencies.
+  **Context**: Reviewing PR #<PR_NUMBER> with the following changed files:
+  <LIST_OF_CHANGED_FILES>
 
-### Tool Usage
-```
-Tool: Task
-Subagent: shared-agents::technology-detector
-Purpose: Identify tech stack for targeted review
-```
+  **Analysis Required**:
+  - Primary language and framework (React, Angular, Node.js, Python, Java, etc.)
+  - Backend framework if applicable (Express, NestJS, Django, FastAPI, Spring Boot)
+  - State management approach (Redux, Zustand, etc.)
+  - Styling approach (Tailwind, SCSS, styled-components, etc.)
+  - Testing framework (Jest, Vitest, pytest, JUnit, etc.)
+  - Database/ORM if detectable
+  - Build tools and configuration
 
-### Prompt for Agent
-```
-Analyze this project to detect the technology stack and architectural patterns.
+  **Output Required**:
+  - Primary technology stack summary
+  - Framework versions if detectable
+  - Key architectural patterns
+  - Review focus areas based on technology (e.g., React hooks, Angular lifecycle, Node.js async patterns)
+  - Technology-specific risks or concerns"
 
-**Context**: Reviewing PR #<PR_NUMBER> with the following changed files:
-<list of changed files>
-
-**Task**: Perform a STANDARD analysis (2-3 minutes) to identify:
-1. Primary languages and frameworks
-2. Frontend stack (if applicable)
-3. Backend stack (if applicable)
-4. Build tools and package managers
-5. Testing frameworks
-6. Key dependencies
-7. Architectural patterns
-
-**Output Required**: Provide a structured Technology Detection Report including:
-- Project type (Frontend/Backend/Full-Stack/Mobile)
-- Primary technologies with confidence levels
-- Recommendations for review focus areas
-
-This information will be used to apply technology-specific review criteria.
-```
-
-### Expected Output
-Technology Detection Report containing:
-- Project type classification
-- Tech stack with confidence levels
-- Framework versions
-- Key dependencies
-- Review focus recommendations
-
-### Success Criteria
-- At least one primary language detected with HIGH confidence
-- Project type identified (Frontend/Backend/Full-Stack/Mobile/Library)
-- Review recommendations provided
-
-### Error Handling
-- **Cannot Detect Technology**: Proceed with generic review
-- **Multiple Conflicting Technologies**: Report all, review with multiple lenses
-- **Missing Config Files**: Use source code analysis only
-
-### Context for Next Phase
-Pass to Phase 3:
-- Full technology report
-- Framework-specific review rules to apply
-- Common pitfalls for detected stack
+- Expected output: Technology detection report with framework, version, tooling, and recommended review focus areas
+- Context: Project root directory, package.json, changed files list
+- Action: Use detected technology to inform code review in Phase 3. If detection fails, continue with generic review
 
 ---
 
 ## Phase 3: Code Quality Review
 
-### Objective
-Perform comprehensive code quality analysis with technology-specific best practices.
+### Step 1. Review Code Changes with Technology-Specific Lens
+- Use Task tool with subagent_type="shared-agents::code-reviewer"
+- Prompt: "Review the code changes in PR #<PR_NUMBER> for quality, maintainability, and best practices.
 
-### Process
-Invoke the code-reviewer agent with technology context and changed files.
+  **PR Context**:
+  - Title: <PR_TITLE>
+  - Author: <PR_AUTHOR>
+  - Changed Files: <COUNT> files (<ADDITIONS> additions, <DELETIONS> deletions)
 
-### Tool Usage
-```
-Tool: Task
-Subagent: shared-agents::code-reviewer
-Purpose: Analyze code quality, maintainability, and best practices
-```
+  **Technology Context** (from Phase 2):
+  <TECHNOLOGY_DETECTION_REPORT>
 
-### Prompt for Agent
-```
-Review the code changes in PR #<PR_NUMBER> for quality, maintainability, and best practices.
+  **Changed Files to Review**:
+  <LIST_OF_CHANGED_FILES_WITH_LINE_COUNTS>
 
-**PR Context**:
-- Title: <PR_TITLE>
-- Author: <PR_AUTHOR>
-- Description: <PR_DESCRIPTION>
-- Changed Files: <count> files
+  **Full Diff**:
+  <COMPLETE_DIFF_FROM_PHASE_1>
 
-**Technology Context** (from detection phase):
-<technology detection report>
+  **Your Task**:
+  1. Read and analyze all changed files
+  2. Apply technology-specific review criteria based on detected stack
+  3. Identify code quality issues categorized by severity:
+     - CRITICAL: Major bugs, security issues, broken functionality
+     - HIGH: Significant problems affecting maintainability or performance
+     - MEDIUM: Code smells, minor bugs, improvement opportunities
+     - LOW: Style issues, minor optimizations
+     - NITPICK: Formatting, naming conventions (if significant)
 
-**Changed Files**:
-<list of files with +/- line counts>
+  4. For each finding, provide:
+     - Severity level
+     - File and line number (file:line format)
+     - Issue description
+     - Current code example (from diff)
+     - Suggested fix with code example
+     - Rationale and impact
 
-**Your Task**:
-1. Read all changed files to understand the full context
-2. Apply technology-specific review criteria based on detected stack
-3. Analyze for:
-   - Code quality and readability
-   - Best practices adherence
-   - Performance considerations
-   - Maintainability and complexity
-   - Testing coverage
-   - Documentation completeness
-4. Provide structured feedback with:
-   - Severity levels (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
-   - File:line references for every issue
-   - Current code vs suggested fix examples
-   - Rationale and references
+  5. Identify positive patterns and good practices
 
-**Focus Areas** (based on detected tech):
-<tech-specific focus areas from Phase 2>
+  **Technology-Specific Checks**:
+  <INSERT_RELEVANT_CHECKS_BASED_ON_DETECTED_TECHNOLOGY>
 
-**Output Required**:
-- Detailed findings for each issue
-- Code quality review summary
-- Positive highlights
-- Preliminary recommendation (APPROVE/REQUEST_CHANGES/COMMENT)
+  **Focus Areas** (if --focus flag provided):
+  <FOCUS_AREA_FROM_PARAMETERS>
 
-Do NOT include security-specific findings (handled in next phase).
-Focus on code quality, design, and maintainability.
-```
+  **Output Format**:
+  Structured review with categorized findings, specific file:line references, and code examples"
 
-### Expected Output
-Structured code review with:
-- Categorized findings (Critical/High/Medium/Low/Nitpick)
-- Specific file:line references
-- Code examples for issues and fixes
-- Review summary with recommendation
-
-### Success Criteria
-- All changed files analyzed
-- At least one finding or explicit "no issues found" statement
-- Each finding has file:line reference
-- Suggestion provided for each issue
-
-### Error Handling
-- **Cannot Read File**: Skip and note in report, continue with other files
-- **Binary File**: Note as non-reviewable, continue
-- **Too Large**: Review partial content, note limitation
-
-### Context for Next Phase
-Pass to Phase 4:
-- Code quality findings (to cross-reference with security issues)
-- List of files needing security focus
-- Database/API files for security review priority
+- Expected output: Detailed code review report with categorized findings (CRITICAL/HIGH/MEDIUM/LOW/NITPICK), file:line references, current code vs suggested fixes, rationale for each finding, positive highlights
+- Context: Full diff from Phase 1, technology context from Phase 2, PR metadata
+- Action: Parse findings and categorize by severity. Count critical/high/medium/low issues for final recommendation
 
 ---
 
 ## Phase 4: Security Audit
 
-### Objective
-Perform comprehensive security analysis focusing on OWASP Top 10 and common vulnerabilities.
+### Step 1. Perform Security Analysis
+- Use Task tool with subagent_type="security-compliance::security-auditor"
+- Prompt: "Perform security audit on PR #<PR_NUMBER> changes.
 
-### Process
-Invoke the security-auditor agent (from security-compliance plugin).
+  **PR Context**:
+  - Title: <PR_TITLE>
+  - Author: <PR_AUTHOR>
+  - Technology Stack: <FROM_PHASE_2>
 
-### Tool Usage
-```
-Tool: Task
-Subagent: security-auditor
-Purpose: Identify security vulnerabilities and risks
-```
+  **Changed Files**:
+  <LIST_OF_CHANGED_FILES>
 
-### Prompt for Agent
-```
-Perform a security audit on the code changes in PR #<PR_NUMBER>.
+  **Full Diff**:
+  <COMPLETE_DIFF_FROM_PHASE_1>
 
-**PR Context**:
-- Title: <PR_TITLE>
-- Changed Files: <count> files
+  **Security Assessment Required**:
+  1. OWASP Top 10 vulnerability scan:
+     - Injection (SQL, NoSQL, Command, XSS)
+     - Broken Authentication
+     - Sensitive Data Exposure
+     - XML External Entities (XXE)
+     - Broken Access Control
+     - Security Misconfiguration
+     - Cross-Site Scripting (XSS)
+     - Insecure Deserialization
+     - Using Components with Known Vulnerabilities
+     - Insufficient Logging & Monitoring
 
-**Technology Context**:
-<relevant security considerations from tech detection>
+  2. Technology-specific security checks based on detected stack
+  3. Authentication and authorization validation
+  4. Input validation and sanitization
+  5. Dependency security (if package changes detected)
+  6. Secrets or credentials exposure
+  7. API security (rate limiting, authentication)
 
-**Changed Files**:
-<list of changed files>
+  **Output Required**:
+  - Security findings categorized by severity (CRITICAL/HIGH/MEDIUM/LOW)
+  - Specific file:line references for each issue
+  - Vulnerability description and potential impact
+  - Remediation steps with code examples
+  - OWASP category reference where applicable"
 
-**Code Quality Findings** (from Phase 3):
-<any findings that might have security implications>
-
-**Your Task**:
-Perform a comprehensive security audit focusing on:
-1. OWASP Top 10 vulnerabilities
-2. Authentication and authorization issues
-3. Input validation and sanitization
-4. SQL/NoSQL injection vulnerabilities
-5. XSS and CSRF vulnerabilities
-6. Sensitive data exposure
-7. Insecure dependencies
-8. API security
-9. Cryptography usage
-10. Error handling and information disclosure
-
-**Output Required**:
-- Security findings with CRITICAL/HIGH/MEDIUM/LOW severity
-- Specific vulnerability descriptions
-- Exploit scenarios (if applicable)
-- Remediation recommendations with code examples
-- Security compliance summary
-- BLOCK/WARN/PASS recommendation
-
-**Important**:
-- Prioritize findings that could lead to data breach or unauthorized access
-- Provide actionable remediation steps
-- Reference OWASP or CWE identifiers where applicable
-```
-
-### Expected Output
-Security audit report with:
-- Vulnerabilities categorized by severity
-- Exploit scenarios and impact assessment
-- Remediation recommendations
-- Compliance status
-- Security recommendation (BLOCK/WARN/PASS)
-
-### Success Criteria
-- All changed files scanned for security issues
-- OWASP Top 10 checks completed
-- Each vulnerability has remediation guidance
-- Overall security recommendation provided
-
-### Error Handling
-- **Security Agent Unavailable**: Perform basic security checks manually
-- **Cannot Scan File**: Note limitation, continue with other files
-- **False Positives**: Mark as potential issues for human review
-
-### Context for Next Phase
-Pass to Phase 5:
-- Security findings to include in final report
-- Critical security blocks that prevent merge
-- Files that failed security checks
+- Expected output: Security audit report with vulnerability findings categorized by severity, OWASP references, remediation steps, and overall security posture assessment
+- Context: Code changes from Phase 1, technology stack from Phase 2
+- Action: Parse security findings. Flag CRITICAL security issues for BLOCKED recommendation. Count security issues for final report
 
 ---
 
 ## Phase 5: Lint & Build Verification
 
-### Objective
-Verify that code passes linting rules and builds successfully.
+### Step 1. Run Linting on Changed Files
+- Use Bash tool to execute linting commands based on detected technology
+- Commands (technology-dependent):
+  - **Node.js/TypeScript**: `npx eslint <CHANGED_FILES> --format=json` or `npm run lint`
+  - **Python**: `pylint <CHANGED_FILES> --output-format=json` or `flake8 <CHANGED_FILES>`
+  - **Java**: `./gradlew checkstyleMain` or `mvn checkstyle:check`
+- Expected output: Linting results with errors and warnings
+- Context: Changed files list, detected technology
+- Action: Parse linting output. Count errors and warnings. If linter not configured, skip with note in report
 
-### Process
-Execute project-specific lint and build commands.
+### Step 2. Run Build Process
+- Use Bash tool to execute build command
+- Commands (technology-dependent):
+  - **Node.js**: `npm run build` or `yarn build`
+  - **Python**: `python setup.py build` or check import errors
+  - **Java**: `mvn compile` or `./gradlew build --no-test`
+- Expected output: Build success/failure with error messages if any
+- Context: Project root, detected build tool
+- Action: Capture build result. If build fails, mark as CRITICAL issue for final recommendation. If build not configured, attempt to verify no syntax errors
 
-### Tool Usage
-```
-Tool: Bash
-Purpose: Run linting and build commands
-```
-
-### Actions
-
-1. **Detect Lint Commands**
-   ```bash
-   # Check package.json scripts
-   if [ -f package.json ]; then
-     npm run lint 2>&1
-   fi
-
-   # Python projects
-   if [ -f setup.py ] || [ -f pyproject.toml ]; then
-     pylint <changed_files> 2>&1
-     flake8 <changed_files> 2>&1
-   fi
-
-   # Other languages
-   # Java: mvn checkstyle:check
-   # Go: golangci-lint run
-   ```
-
-2. **Run Build**
-   ```bash
-   # Node.js projects
-   if [ -f package.json ]; then
-     npm run build 2>&1
-   fi
-
-   # Python projects
-   if [ -f setup.py ]; then
-     python setup.py build 2>&1
-   fi
-
-   # Java projects
-   if [ -f pom.xml ]; then
-     mvn compile 2>&1
-   fi
-   ```
-
-3. **Check for Errors**
-   - Parse output for errors vs warnings
-   - Count issues by severity
-   - Extract file:line references
-
-4. **Run Type Checking** (if applicable)
-   ```bash
-   # TypeScript
-   npx tsc --noEmit 2>&1
-
-   # Python
-   mypy <changed_files> 2>&1
-   ```
-
-### Expected Output
-- Lint results (errors and warnings count)
-- Build status (success/failure)
-- Type checking results (if applicable)
-- List of lint/build errors with file:line references
-
-### Success Criteria
-- Lint command executed (or noted as unavailable)
-- Build command executed (or noted as unavailable)
-- Results parsed and categorized
-
-### Error Handling
-- **No Lint Script**: Note in report, not a blocker
-- **Build Fails**: Mark as CRITICAL issue, must fix
-- **Lint Errors**: Include in report, assess severity
-- **Command Not Found**: Try alternative commands, note limitation
-
-### Context for Next Phase
-Pass to Phase 6:
-- Lint error count and details
-- Build status and errors
-- Type checking results
+### Step 3. Check Type Errors (if applicable)
+- Use Bash tool to run type checker
+- Commands (if applicable):
+  - **TypeScript**: `npx tsc --noEmit`
+  - **Python**: `mypy <CHANGED_FILES>`
+  - **Java**: Covered by build step
+- Expected output: Type errors if any
+- Context: Changed files, detected language
+- Action: Report type errors. Consider type errors as HIGH severity issues
 
 ---
 
 ## Phase 6: Review Summary & Publishing
 
-### Objective
-Consolidate all findings into a comprehensive report and optionally publish to PR.
+### Step 1. Consolidate All Findings
+- Aggregate findings from all phases:
+  - Code quality issues from Phase 3 (categorized by severity)
+  - Security vulnerabilities from Phase 4 (categorized by severity)
+  - Lint errors/warnings from Phase 5
+  - Build errors from Phase 5
+  - Type errors from Phase 5
+- Count issues by severity: CRITICAL, HIGH, MEDIUM, LOW, NITPICK
+- Identify blocking issues (CRITICAL security vulnerabilities, build failures)
+- Extract positive highlights from code review
 
-### Process
-Aggregate results from all phases and generate structured summary.
+### Step 2. Generate Final Recommendation
+- Decision logic:
+  - **BLOCKED**: IF any CRITICAL security issues OR build failures
+  - **REQUEST CHANGES**: IF any HIGH severity issues (and no blocking issues)
+  - **COMMENT**: IF only MEDIUM/LOW/NITPICK issues
+  - **APPROVE**: IF no significant issues found
+- Generate recommendation rationale based on issue counts and severity
 
-### Actions
+### Step 3. Format Comprehensive Report
+- Structure report with sections:
+  1. **PR Summary**: Title, author, changed files count, additions/deletions
+  2. **Technology Stack**: Detected frameworks and patterns from Phase 2
+  3. **Review Recommendation**: APPROVE/REQUEST CHANGES/COMMENT/BLOCKED with rationale
+  4. **Critical Issues**: Blocking issues that must be addressed (if any)
+  5. **High Priority Issues**: Important issues to address (if any)
+  6. **Code Quality Findings**: Categorized findings from Phase 3
+  7. **Security Findings**: Vulnerabilities from Phase 4
+  8. **Build & Lint Results**: Errors and warnings from Phase 5
+  9. **Positive Highlights**: Good patterns identified
+  10. **Next Steps**: Actionable items for PR author
 
-1. **Consolidate Findings**
-   ```
-   - Merge code quality findings (Phase 3)
-   - Merge security findings (Phase 4)
-   - Add lint/build findings (Phase 5)
-   - Remove duplicates
-   - Sort by severity and file
-   ```
+- Format findings with:
+  - Severity badge (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, 🟢 LOW, ⚪ NITPICK)
+  - File:line reference (clickable if possible)
+  - Issue description
+  - Current code vs suggested fix (code blocks)
+  - Rationale
 
-2. **Generate Summary Report**
-   ```markdown
-   # PR #<NUMBER> Comprehensive Review Report
+### Step 4. Present Report to User
+- Display formatted report in console/output
+- Save report to file: `.claude/pr-review-<PR_NUMBER>.md`
+- Summary statistics:
+  - Total issues: X (CRITICAL: X, HIGH: X, MEDIUM: X, LOW: X, NITPICK: X)
+  - Files reviewed: X
+  - Lines changed: +X / -X
+  - Final recommendation: APPROVE/REQUEST CHANGES/COMMENT/BLOCKED
 
-   ## PR Information
-   - **Title**: <title>
-   - **Author**: <author>
-   - **Branch**: <head> → <base>
-   - **Files Changed**: X files (+Y lines, -Z lines)
-   - **Commits**: N commits
-
-   ## Technology Stack
-   <summary from Phase 2>
-
-   ## Review Summary
-
-   ### Overall Recommendation: [APPROVE / REQUEST CHANGES / COMMENT / BLOCKED]
-
-   ### Findings Overview
-   - ⛔ Critical Issues: X (must fix)
-   - ⚠️  High Priority: Y (should fix)
-   - ℹ️  Medium Priority: Z (consider fixing)
-   - 💡 Low Priority: W (nice to have)
-   - 🎨 Nitpicks: V (optional)
-
-   ### Security Status: [PASS / WARN / BLOCK]
-   - Security vulnerabilities: X
-   - OWASP Top 10 checks: [status]
-
-   ### Build Status: [PASS / FAIL]
-   - Lint errors: X
-   - Build errors: Y
-   - Type errors: Z
-
-   ## Blocking Issues
-   [List of critical issues that must be fixed before merge]
-
-   ## Detailed Findings
-
-   ### Code Quality Issues
-   [Findings from Phase 3]
-
-   ### Security Issues
-   [Findings from Phase 4]
-
-   ### Lint/Build Issues
-   [Findings from Phase 5]
-
-   ## Positive Highlights
-   [Good patterns, well-tested code, clear documentation]
-
-   ## Recommendations
-   1. [Actionable next steps]
-   2. [Follow-up items]
-   3. [Learning resources]
-
-   ## Next Steps for Author
-   [Clear guidance on what to do next]
-   ```
-
-3. **Determine Final Recommendation**
-   ```
-   Logic:
-   - BLOCKED: Critical security issues OR build fails
-   - REQUEST CHANGES: High priority code quality issues OR security warnings
-   - COMMENT: Medium/Low issues only, code is mergeable
-   - APPROVE: No significant issues found
-   ```
-
-4. **Ask User for Publishing Preference**
-   ```
-   Review complete! I've analyzed <N> files and found:
-   - X critical issues
-   - Y high priority issues
-   - Z total findings
-
-   **Final Recommendation**: [APPROVE / REQUEST CHANGES / COMMENT / BLOCKED]
-
-   Would you like me to:
-   1. Post this review as comments on the PR (requires gh CLI)
-   2. Save the review to a file (review-summary.md)
-   3. Display the full report here
-   4. Focus on specific findings
-
-   What would you prefer?
-   ```
-
-5. **Publish if Requested**
-   ```bash
-   # Post comments to PR using gh CLI
-   gh pr review <PR_NUMBER> --comment --body "<review_summary>"
-
-   # Post individual inline comments
-   for each finding with file:line:
-     gh pr comment <PR_NUMBER> --body "<finding>" \
-       --path <file> --line <line>
-
-   # Or save to file
-   echo "<full_report>" > review-pr-<PR_NUMBER>.md
-   ```
-
-### Expected Output
-- Comprehensive review summary
-- Final recommendation (APPROVE/REQUEST_CHANGES/COMMENT/BLOCKED)
-- Published comments (if requested)
-- Clear next steps for PR author
-
-### Success Criteria
-- All findings consolidated
-- Recommendation is justified by findings
-- Report is clear and actionable
-- User knows what to do next
-
-### Error Handling
-- **gh CLI Not Available**: Save to file instead
-- **Permission Error**: Display report, ask user to post manually
-- **API Rate Limit**: Wait and retry, or save locally
-
-### Coordination Notes
-- This is the final phase
-- Wait for user decision before posting
-- Provide multiple output options
-- Ensure report is accessible and actionable
+### Step 5. Optionally Post to PR (if gh CLI available)
+- Ask user: "Would you like to post this review as a comment on PR #<PR_NUMBER>? (yes/no)"
+- If yes and gh CLI available:
+  - Use Bash: `gh pr comment <PR_NUMBER> --body "$(cat .claude/pr-review-<PR_NUMBER>.md)"`
+  - Confirm comment posted successfully
+- If no or gh CLI not available:
+  - Inform user: "Review saved to .claude/pr-review-<PR_NUMBER>.md. You can manually post to PR."
 
 ---
 
-## Usage Examples
+## Success Criteria
 
-### Example 1: Basic PR Review
+### Overall Success
+- [ ] PR information gathered successfully (all details, files, diff)
+- [ ] Technology stack correctly detected
+- [ ] Code quality review completed with categorized findings
+- [ ] Security audit completed with vulnerability assessment
+- [ ] Build and lint verification completed (or documented as N/A)
+- [ ] Comprehensive report generated with actionable recommendations
+- [ ] Final recommendation provided (APPROVE/REQUEST/COMMENT/BLOCKED)
+
+### Phase 1 Criteria
+- [ ] PR exists and is accessible
+- [ ] Changed files list retrieved (non-empty)
+- [ ] Full diff obtained
+- [ ] Commit history fetched
+
+### Phase 2 Criteria
+- [ ] Technology stack identified (at minimum: language and primary framework)
+- [ ] Review focus areas determined based on technology
+- [ ] Technology-specific checks prepared for Phase 3
+
+### Phase 3 Criteria
+- [ ] All changed files reviewed
+- [ ] Findings categorized by severity (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
+- [ ] File:line references provided for all findings
+- [ ] Code examples included (current vs suggested)
+- [ ] Positive patterns identified
+
+### Phase 4 Criteria
+- [ ] OWASP Top 10 checks performed
+- [ ] Technology-specific security checks completed
+- [ ] Security findings categorized by severity
+- [ ] Remediation steps provided for each vulnerability
+- [ ] Critical security issues flagged for BLOCKED recommendation
+
+### Phase 5 Criteria
+- [ ] Linting attempted (or documented as not configured)
+- [ ] Build attempted (or documented as not configured)
+- [ ] Type checking attempted if applicable
+- [ ] All errors and warnings captured and reported
+
+### Phase 6 Criteria
+- [ ] All findings consolidated from all phases
+- [ ] Final recommendation calculated correctly
+- [ ] Comprehensive report generated and formatted
+- [ ] Report saved to file
+- [ ] User provided with clear next steps
+
+---
+
+## Example Usage
+
+### Example 1: Standard Review
 ```bash
 /review-pull-request 42
 ```
 **Flow**:
-- Fetches PR #42 details
-- Detects React + TypeScript project
-- Reviews 8 changed files
-- Runs security audit
-- Checks lint and build
-- Generates summary with 3 high priority issues
-- Recommends REQUEST CHANGES
+- Fetches PR #42 details, files, and diff
+- Detects technology (e.g., React + TypeScript + Express backend)
+- Reviews code quality with React/TypeScript best practices
+- Performs security audit checking for XSS, injection, auth issues
+- Runs ESLint and TypeScript compiler
+- Generates report with findings: 2 HIGH, 5 MEDIUM, 3 LOW issues
+- Recommendation: REQUEST CHANGES (due to HIGH issues)
 
 ### Example 2: Security-Focused Review
 ```bash
 /review-pull-request 123 --focus=security
 ```
 **Flow**:
-- Emphasizes security analysis
-- Deep OWASP Top 10 scan
-- Dependency vulnerability check
-- Lighter code quality review
-- Recommends BLOCKED due to SQL injection
+- Fetches PR #123 details
+- Detects technology (e.g., Django + PostgreSQL)
+- Performs in-depth security audit (OWASP Top 10, SQL injection, auth)
+- Reviews code quality with focus on security patterns
+- Runs pylint and build
+- Generates report emphasizing security findings
+- Recommendation: BLOCKED (CRITICAL SQL injection vulnerability found)
 
 ### Example 3: Quick Quality Check
 ```bash
 /review-pull-request 89 --focus=quality
 ```
 **Flow**:
-- Focuses on code quality and maintainability
-- Standard security checks
-- Detailed best practices analysis
-- Recommends COMMENT with suggestions
+- Fetches PR #89 details
+- Detects technology (e.g., Angular + RxJS)
+- Performs thorough code quality review (Angular patterns, RxJS usage, performance)
+- Lighter security check (basic validation)
+- Runs ng lint and ng build
+- Generates report focused on code quality and maintainability
+- Recommendation: COMMENT (only LOW/NITPICK issues, overall good quality)
 
-## Success Metrics
+---
 
-A successful PR review workflow:
-1. ✅ Completes all 6 phases without errors
-2. ✅ Identifies critical issues (if any exist)
-3. ✅ Provides actionable feedback with code examples
-4. ✅ Generates clear recommendation (APPROVE/REQUEST/COMMENT/BLOCKED)
-5. ✅ Delivers report in user's preferred format
-6. ✅ Author understands what to do next
+## Error Handling
 
-## Failure Scenarios & Handling
+### Phase 1 Errors
 
-| Scenario                   | Phase   | Handling                            |
-| -------------------------- | ------- | ----------------------------------- |
-| PR not found               | Phase 1 | Abort with clear error message      |
-| No changed files           | Phase 1 | Abort, nothing to review            |
-| Tech detection fails       | Phase 2 | Continue with generic review        |
-| File read error            | Phase 3 | Skip file, note in report           |
-| Security agent unavailable | Phase 4 | Perform basic manual checks         |
-| Build fails                | Phase 5 | Mark as CRITICAL, include in report |
-| gh CLI not available       | Phase 6 | Save to file instead                |
+**Error**: PR Not Found
+- **Cause**: Invalid PR number or PR doesn't exist
+- **Resolution**: STOP workflow. Display: "Error: Pull request #<NUMBER> not found. Please check the PR number and try again."
+- **Example**: `/review-pull-request 99999` when PR doesn't exist
+
+**Error**: No Changed Files
+- **Cause**: PR has no file changes (empty PR)
+- **Resolution**: STOP workflow. Display: "Pull request #<NUMBER> has no changed files. Nothing to review."
+
+**Error**: gh CLI Not Available
+- **Cause**: GitHub CLI not installed or not authenticated
+- **Resolution**: STOP workflow. Display: "Error: gh CLI not available. Please install: https://cli.github.com/ and authenticate with: gh auth login"
+
+### Phase 2 Errors
+
+**Error**: Technology Detection Fails
+- **Cause**: Unable to determine project technology from files
+- **Resolution**: Continue with generic review. Note in report: "Technology detection failed, using generic review criteria."
+
+### Phase 3 Errors
+
+**Error**: Cannot Read Changed File
+- **Cause**: File path invalid, file deleted, or permission issue
+- **Resolution**: Skip file. Note in report: "Could not read <FILE_PATH>: <ERROR>. Skipped in review."
+
+### Phase 4 Errors
+
+**Error**: Security Agent Unavailable
+- **Cause**: security-compliance plugin not installed
+- **Resolution**: Perform basic manual security checks. Note in report: "Security agent unavailable, performed manual basic checks only."
+
+### Phase 5 Errors
+
+**Error**: Build Fails
+- **Cause**: Code changes introduced build errors
+- **Resolution**: Mark as CRITICAL issue. Include build error output in report. Recommendation: BLOCKED
+
+**Error**: Linter Not Configured
+- **Cause**: No linter configuration found in project
+- **Resolution**: Skip linting. Note in report: "Linting skipped: No linter configuration found."
+
+### Phase 6 Errors
+
+**Error**: Cannot Post Comment to PR
+- **Cause**: gh CLI fails or authentication issue
+- **Resolution**: Save report to file. Display: "Could not post comment to PR. Review saved to .claude/pr-review-<NUMBER>.md"
+
+---
+
+## Coordination Notes
+
+### Phase Flow
+- Phases 1-5 are sequential and cannot be parallelized (each depends on previous)
+- Phase 1 must succeed (PR fetching) before proceeding to Phase 2
+- Phase 2 technology detection informs Phase 3 code review focus
+- Phase 3 and 4 can theoretically run in parallel but kept sequential for clarity
+- Phase 5 verification depends on detected technology from Phase 2
+- Phase 6 consolidates all previous phases
+
+### Conditional Phase Execution
+- If PR not found in Phase 1: STOP entire workflow
+- If technology detection fails in Phase 2: Continue with generic review
+- If security agent unavailable in Phase 4: Perform basic manual checks
+- If build/lint not configured in Phase 5: Skip with note, don't fail workflow
+
+### Retry Logic
+- No automatic retries for Phase 1 (user must fix PR number)
+- Phase 2 technology detection: 1 retry with more generic search if first attempt fails
+- Phase 5 build: No retries (build failure is a finding, not a workflow error)
+
+### Focus Flag Behavior
+- `--focus=security`: Emphasize security in Phase 4, lighter code quality in Phase 3
+- `--focus=quality`: Emphasize code quality in Phase 3, lighter security in Phase 4
+- `--focus=performance`: Add performance-specific checks in Phase 3
+- `--focus=all` or no flag: Full comprehensive review (default)
+
+---
 
 ## Integration with Existing Plugins
 
-### Uses:
-- **technology-detector** (shared-agents plugin)
-- **code-reviewer** (shared-agents plugin)
-- **security-auditor** (security-compliance plugin)
+### Uses (Agents from Other Plugins)
+- **shared-agents::technology-detector**: Phase 2 technology detection
+- **shared-agents::code-reviewer**: Phase 3 code quality analysis
+- **security-compliance::security-auditor**: Phase 4 security audit
 
-### Coordinates With:
-- **git-actions**: For PR management and publishing
-- **react-developer**: For implementation suggestions
-- **mobile-developer**: For React Native/Flutter specific reviews
+### Coordinates With
+- **git-actions**: For PR management and publishing (potential future integration)
+- **frontend-mobile-development agents**: Indirectly via code-reviewer's technology-specific checks
 
-### Output For:
-- PR authors: Clear feedback and next steps
-- Reviewers: Comprehensive analysis to supplement human review
-- CI/CD: Pass/fail signals for automated gates
+### Outputs For
+- **PR Authors**: Clear, actionable feedback on what to fix
+- **Team Leads**: Quality metrics and review summary
+- **CI/CD**: Can be integrated into automation pipeline
+
+---
+
+## When to Use This Command
+
+**Use when:**
+- Reviewing a pull request before merging
+- Performing quality gates in CI/CD
+- Getting a second opinion on complex changes
+- Ensuring security compliance before deployment
+- Standardizing review criteria across team
+
+**Don't use when:**
+- PR is draft (wait until ready for review)
+- Major refactoring without tests (test first)
+- Emergency hotfix (post-review documentation instead)
 
 ---
 
 ## Implementation Notes
 
-### Prerequisites
-- Git repository with remote configured
-- Pull request exists on remote
-- User has read access to PR
-- Optional: gh CLI installed for PR interaction
+### Timing Expectations
+- **Quick PR** (< 5 files, < 200 lines): 2-3 minutes
+- **Standard PR** (5-20 files, < 1000 lines): 5-10 minutes
+- **Large PR** (> 20 files, > 1000 lines): 15-30 minutes
 
-### Configuration
-None required - adapts to detected technology stack
-
-### Timing
-- **Quick Review**: 2-4 minutes (small PRs, <100 lines)
-- **Standard Review**: 5-10 minutes (medium PRs, 100-500 lines)
-- **Deep Review**: 10-20 minutes (large PRs, >500 lines, complex changes)
+### Review Quality
+- Leverages specialized agents for best results
+- Technology-aware: adapts to React, Angular, Node.js, Python, etc.
+- Consistent standards across all reviews
+- Actionable feedback with code examples
 
 ### Extensibility
-- Add new technology-specific review agents
-- Customize security rules per project
-- Add project-specific lint configurations
-- Extend with custom review phases
+- Easy to add new focus areas (--focus=accessibility, --focus=i18n)
+- Can integrate additional verification steps (test coverage, performance benchmarks)
+- Pluggable security checks based on project needs
 
 ---
 
-**End of Review Pull Request Command Definition**
+**End of Review Pull Request Command**

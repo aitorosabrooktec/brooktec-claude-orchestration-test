@@ -1,15 +1,33 @@
 # Brooktec Claude Code Workflows
 
-Comprehensive workflow orchestration plugins and agents for frontend development with Claude AI.
+Comprehensive workflow orchestration plugins and agents for frontend and backend development with Claude AI.
 
 ## Overview
 
-This marketplace provides a complete frontend development workflow that includes:
+This marketplace provides complete development workflows that include:
 - Project setup and validation
 - Requirements review
-- Framework-aware development (Angular, React)
-- Security auditing
+- Framework-aware development (Frontend: Angular, React, React Native, Flutter | Backend: Express, NestJS)
+- API testing and integration test generation
+- Security auditing (OWASP Top 10)
 - Pull request management with Redmine integration
+
+## 📊 Workflow Diagrams
+
+Visual flowcharts for all orchestrators are available in the [diagrams/](./diagrams/) directory:
+- [Frontend Feature Workflow](./diagrams/frontend-feature-workflow.md) - 4 phases with technology detection
+- [Backend Feature Workflow](./diagrams/backend-feature-workflow.md) - 6 phases with API testing
+- [Pull Request Review](./diagrams/review-pull-request-workflow.md) - 6 phases with comprehensive analysis
+- [Create Pull Request](./diagrams/create-pull-request-workflow.md) - 4 phases with automation
+- [Dependency Health Check](./diagrams/check-dependencies-workflow.md) - 5 phases with verification
+- [Backend Test Generation](./diagrams/create-backend-tests-workflow.md) - 8 phases with coverage analysis
+
+Each diagram includes:
+- Complete phase and step breakdown
+- Decision points and branching logic
+- STOP conditions and user interaction points
+- Success criteria and error handling
+- Color-coded flow for easy understanding
 
 ## Plugins
 
@@ -35,7 +53,25 @@ This marketplace provides a complete frontend development workflow that includes
 - `security-compliance` (provides security-auditor agent)
 - `git-actions` (provides PR creation workflow)
 
-### 3. frontend-mobile-development (Development Agents)
+### 3. backend-orchestration (Backend Workflow Orchestrator) - NEW in v0.0.7
+**Main orchestration command for backend feature development**
+
+- **Commands**: `backend-feature` - Complete 6-phase workflow for backend API features
+
+**⚠️ IMPORTANT**: This plugin orchestrates the backend workflow but **requires other plugins to be installed** to function properly.
+
+**Required Dependencies**:
+- `shared-agents` (provides project-setup, requirements-reviewer, technology-detector, code-reviewer)
+- `backend-development` (provides node-developer agent)
+- `test-orchestration` (provides test-generator for API testing)
+- `security-compliance` (provides security-auditor agent)
+- `git-actions` (provides PR creation workflow)
+
+**Flags**:
+- `--skip-pr` (optional): Skip PR creation
+- `--skip-tests` (optional): Skip API testing phase
+
+### 4. frontend-mobile-development (Development Agents)
 **Expert agents for frontend and mobile development**
 
 - **Agents**:
@@ -43,20 +79,26 @@ This marketplace provides a complete frontend development workflow that includes
   - `angular-developer` - Angular expert with version-aware patterns and RxJS
   - `mobile-developer` - React Native and Flutter expert
 
-### 4. security-compliance (Security Agents)
+### 5. backend-development (Backend Development Agents) - NEW in v0.0.7
+**Expert agents for backend API development with Node.js**
+
+- **Agents**:
+  - `node-developer` - Node.js expert for Express and NestJS frameworks. Detects and adapts to project ORM/ODM (TypeORM, Prisma, Mongoose), validation library (Joi, class-validator, Zod), and authentication approach (JWT, Passport.js, session-based). Implements RESTful APIs, database integration, authentication/authorization, input validation, and security best practices.
+
+### 6. security-compliance (Security Agents)
 **Security auditing and compliance validation**
 
 - **Agents**:
   - `security-auditor` - Comprehensive security assessment with OWASP Top 10
 
-### 5. git-actions (Git & PR Management)
+### 7. git-actions (Git & PR Management)
 **Pull request creation and management with Redmine integration**
 
 - **Commands**: `create-pull-request` - Orchestrates PR creation workflow
 - **Agents**:
   - `pull-request-manager` - Handles PR tasks (validation, content generation, submission)
 
-### 6. pr-review (Pull Request Review)
+### 8. pr-review (Pull Request Review)
 **Comprehensive pull request review with automated quality and security analysis**
 
 - **Commands**: `review-pull-request` - Complete PR review workflow with technology detection, code quality analysis, security auditing, and build verification
@@ -65,7 +107,7 @@ This marketplace provides a complete frontend development workflow that includes
 - `shared-agents` (provides technology-detector, code-reviewer)
 - `security-compliance` (provides security-auditor agent)
 
-### 7. test-orchestration (Test Generation) - NEW in v0.0.5
+### 9. test-orchestration (Test Generation) - NEW in v0.0.5
 **Automated backend test generation with execution, coverage analysis, and quality review**
 
 - **Commands**: `create-backend-tests` - 8-phase test generation workflow
@@ -86,23 +128,25 @@ This marketplace provides a complete frontend development workflow that includes
 **Required Dependencies**:
 - `shared-agents` (provides requirements-reviewer, project-setup, technology-detector, code-reviewer)
 
-### 8. dependency-health (Dependency Management)
+### 10. dependency-health (Dependency Management)
 **Automated dependency health checks and updates**
 
-- **Commands**: `check-dependencies` - 4-phase dependency management workflow
-- Validates Node version, resolves vulnerabilities, updates packages, generates reports
+- **Commands**: `check-dependencies` - 5-phase dependency management workflow
+- Validates Node version, resolves vulnerabilities, updates packages, generates reports, verifies changes (npm install, lint, build, test)
 
 ## Installation
 
 ### Option 1: Install Complete Workflow (Recommended)
 
-To use the full `frontend-feature` workflow, PR review, and test generation capabilities, install **ALL** plugins:
+To use the full `frontend-feature`, `backend-feature`, PR review, and test generation capabilities, install **ALL** plugins:
 
 ```bash
 # Install all plugins for complete workflow
 @shared-agents
 @frontend-orchestration
 @frontend-mobile-development
+@backend-orchestration
+@backend-development
 @security-compliance
 @git-actions
 @pr-review
@@ -117,6 +161,9 @@ If you only need specific agents without the full workflow:
 ```bash
 # Just frontend development agents
 @frontend-mobile-development
+
+# Just backend development agents
+@backend-development
 
 # Just security auditing
 @security-compliance
@@ -135,6 +182,14 @@ If you only need specific agents without the full workflow:
 
 # Just dependency health checks
 @dependency-health
+
+# Just backend workflow (requires multiple plugins)
+@shared-agents
+@backend-orchestration
+@backend-development
+@test-orchestration
+@security-compliance
+@git-actions
 ```
 
 ## Usage
@@ -198,6 +253,101 @@ This will execute a 4-phase workflow:
    - Generates PR title: `[#taskId] Description`
    - Creates comprehensive PR description with security results
    - Provides manual instructions (or automated if GitHub CLI available)
+
+### Complete Backend Feature Workflow - NEW in v0.0.7
+
+Once all plugins are installed (including backend-orchestration and backend-development), use the backend orchestration command:
+
+```
+/backend-feature Implement user authentication API with JWT
+```
+
+This will execute a 6-phase workflow:
+
+#### Phase 1: Setup & Requirements Validation
+1. **Project Setup** (`project-setup` agent):
+   - Validates Claude project initialization (CLAUDE.md)
+   - Checks git branch (must be `feature/{taskId}-*`)
+   - Validates no uncommitted changes
+   - Checks environment variables (.env from Shadows if needed)
+   - Verifies dependencies and starts dev server
+
+2. **Requirements Review** (`requirements-reviewer` agent from shared-agents plugin):
+   - Validates backend-specific requirements completeness
+   - Checks for API endpoint specifications, business logic, validation rules
+   - Identifies missing information
+   - Requests clarification if needed
+   - Stops workflow if critical information is missing
+
+#### Phase 2: Development
+3. **Technology Detection** (`technology-detector` agent from shared-agents plugin):
+   - Detects backend framework (Express.js or NestJS)
+   - Identifies ORM/ODM (TypeORM, Prisma, Mongoose, Sequelize)
+   - Detects validation library (Joi, class-validator, Zod, yup)
+   - Identifies authentication approach (JWT, Passport.js, session-based)
+   - Stops if ambiguous, asks user to specify
+
+4. **Backend Implementation** (`node-developer` agent from backend-development plugin):
+   - Implements RESTful API endpoints with proper HTTP methods
+   - Applies request validation at API boundaries
+   - Implements business logic in service layer
+   - Creates/updates database entities with migrations
+   - Applies authentication/authorization
+   - Comprehensive error handling and structured logging
+   - Security best practices (parameterized queries, rate limiting, security headers)
+   - TypeScript strict mode for type safety
+
+#### Phase 3: API Testing & Validation (Conditional with --skip-tests)
+5. **Test Generation** (`test-generator` agent from test-orchestration plugin):
+   - Generates API integration tests with Supertest
+   - Covers happy paths, edge cases, and error scenarios
+   - Tests authentication/authorization
+   - Verifies database state changes
+
+6. **Test Execution**:
+   - Runs all generated tests
+   - Ensures all tests pass
+   - Retries up to 3 times on failure
+   - Skipped if --skip-tests flag present
+
+#### Phase 4: Quality & Security Review
+7. **Code Quality Review** (`code-reviewer` agent from shared-agents plugin):
+   - Reviews code structure, TypeScript types, error handling
+   - Database query efficiency, API design
+   - Framework-specific patterns (Express/NestJS)
+   - Maintainability and best practices
+
+8. **Security Audit** (`security-auditor` agent from security-compliance plugin):
+   - Input validation and sanitization
+   - Injection prevention (SQL, NoSQL, XSS)
+   - Authentication/authorization security
+   - OWASP Top 10 coverage
+   - Sensitive data protection
+
+#### Phase 5: Approval Checkpoint
+- **STOPS** and presents implementation summary, test results, code quality findings, security audit
+- **User has 3 options**:
+  1. **Approve and Create PR**: Proceed to Phase 6 (if --skip-pr not set)
+  2. **Approve without PR**: Finish workflow, skip Phase 6
+  3. **Request Changes**: Return to Phase 2 for modifications
+
+#### Phase 6: Pull Request Creation (Conditional)
+9. **Create PR** (`create-pull-request` command from git-actions plugin):
+   - Only executes if user approved with PR and --skip-pr not set
+   - Generates PR content with API endpoints, code quality, security audit results
+   - Links to Redmine task
+
+**Example Usage:**
+```bash
+# Complete backend feature with API testing and PR
+/backend-feature Implement user authentication API with JWT
+
+# Skip API tests (utility functions, no endpoints)
+/backend-feature --skip-tests Implement data export utility functions
+
+# Skip PR creation (manual PR later)
+/backend-feature --skip-pr Implement payment processing API
+```
 
 ## Pull Request Review Workflow
 
