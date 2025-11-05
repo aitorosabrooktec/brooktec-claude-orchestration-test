@@ -7,20 +7,30 @@
   },
   "metadata": {
     "description": "Brooktec's workflow orchestration plugins and agents. Install all plugins together for full workflow support.",
-    "version": "0.1.0"
+    "version": "0.0.6"
   },
   "plugins": [
     {
-      "name": "frontend-orchestration",
-      "source": "./plugins/frontend-orchestration",
-      "description": "Frontend orchestration workflow. REQUIRES: frontend-mobile-development, security-compliance, and git-actions plugins to be installed for complete workflow.",
-      "version": "0.0.2",
-      "category": "workflows",
+      "name": "shared-agents",
+      "source": "./plugins/shared-agents",
+      "description": "Library of reusable agents for all workflows: project setup, technology detection, code review, and requirements validation",
+      "version": "0.0.1",
+      "category": "library",
       "strict": false,
       "agents": [
         "./agents/project-setup.md",
+        "./agents/technology-detector.md",
+        "./agents/code-reviewer.md",
         "./agents/requirements-reviewer.md"
-      ],
+      ]
+    },
+    {
+      "name": "frontend-orchestration",
+      "source": "./plugins/frontend-orchestration",
+      "description": "Frontend orchestration workflow with Phase 2.5 quality gates. REQUIRES: shared-agents, frontend-mobile-development, security-compliance, and git-actions plugins.",
+      "version": "0.0.6",
+      "category": "workflows",
+      "strict": false,
       "commands": [
         "./commands/frontend-feature.md"
       ]
@@ -28,12 +38,12 @@
     {
       "name": "frontend-mobile-development",
       "source": "./plugins/frontend-mobile-development",
-      "description": "Frontend UI development and mobile application implementation across platforms (React, Next.js, Angular, React Native, Flutter)",
-      "version": "0.0.2",
+      "description": "Frontend UI development and mobile application implementation across platforms (React, Angular, React Native, Flutter)",
+      "version": "0.0.3",
       "category": "development",
       "strict": false,
       "agents": [
-        "./agents/frontend-developer.md",
+        "./agents/react-developer.md",
         "./agents/angular-developer.md",
         "./agents/mobile-developer.md"
       ]
@@ -66,16 +76,26 @@
     {
       "name": "pr-review",
       "source": "./plugins/pr-review",
-      "description": "Comprehensive pull request review with technology detection, code quality analysis, security auditing, and build verification. REQUIRES: security-compliance plugin for security auditing.",
+      "description": "Comprehensive pull request review with technology detection, code quality analysis, security auditing, and build verification. REQUIRES: shared-agents and security-compliance plugins.",
+      "version": "0.0.2",
+      "category": "workflows",
+      "strict": false,
+      "commands": [
+        "./commands/review-pull-request.md"
+      ]
+    },
+    {
+      "name": "test-orchestration",
+      "source": "./plugins/test-orchestration",
+      "description": "Automated backend test generation with execution, coverage analysis, and quality review. Supports Jest, pytest, JUnit. REQUIRES: shared-agents plugin.",
       "version": "0.0.1",
       "category": "workflows",
       "strict": false,
       "agents": [
-        "./agents/technology-detector.md",
-        "./agents/pr-reviewer.md"
+        "./agents/test-generator.md"
       ],
       "commands": [
-        "./commands/review-pull-request.md"
+        "./commands/create-backend-tests.md"
       ]
     },
     {

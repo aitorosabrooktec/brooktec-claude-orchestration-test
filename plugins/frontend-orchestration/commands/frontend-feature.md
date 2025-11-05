@@ -1,6 +1,23 @@
 Orchestrate frontend feature development:
 
-[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend/mobile feature with proper setup validation, clear requirements, code quality assurance, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular web, React web, or Mobile frameworks), and proceeds with framework-aware implementation using best practices for modern development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. After implementation, the workflow performs code quality review to check best practices, patterns, and maintainability, followed by comprehensive security auditing. The workflow then STOPS to request explicit user approval. The user reviews the implementation, code quality findings, and security findings before deciding to either proceed to PR creation or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer, frontend-developer, or mobile-developer) automatically detect existing tooling (framework version, state management, styling, authentication, navigation) and adapt accordingly, while informing users about alternative approaches when beneficial.]
+[Extended thinking: This workflow coordinates specialized agents to deliver a secure, production-ready frontend/mobile feature with proper setup validation, clear requirements, code quality assurance, security compliance, and user approval before PR creation. The workflow ensures the development environment is properly configured (including environment variables from Shadows), validates requirement clarity, intelligently detects the project technology (Angular web, React web, or Mobile frameworks), and proceeds with framework-aware implementation using best practices for modern development. If the technology is ambiguous or unclear, it STOPS and asks the user to specify which framework to use. After implementation, the workflow performs code quality review to check best practices, patterns, and maintainability, followed by comprehensive security auditing. The workflow then STOPS to request explicit user approval. The user reviews the implementation, code quality findings, and security findings before deciding to either proceed to PR creation, finish without PR, or request additional changes. This approval checkpoint ensures quality control and gives the user final say before submitting the feature for review. The developer agents (angular-developer, frontend-developer, or mobile-developer) automatically detect existing tooling (framework version, state management, styling, authentication, navigation) and adapt accordingly, while informing users about alternative approaches when beneficial.]
+
+## Workflow Configuration
+
+### Command Flags
+Parse command line arguments to determine workflow behavior:
+
+**--skip-pr Flag** (optional):
+- If present: Skip Phase 4 (PR Creation) entirely
+- Workflow ends after user approval in Phase 3
+- Usage: `/frontend-feature --skip-pr Implement user authentication`
+- Use case: When user wants to create PR manually or not at all
+
+**Flag Parsing**:
+- Check if `--skip-pr` flag is present in $ARGUMENTS
+- Store flag state in workflow context for later phases
+- Remove flag from feature description before passing to agents
+- Example: `--skip-pr Implement login` → feature description = "Implement login", skipPR = true
 
 ## Phase 1: Setup & Requirements Validation
 
@@ -42,7 +59,7 @@ Orchestrate frontend feature development:
   After user resolves issue, workflow continues automatically
 
 ### 2. Requirements Review & Clarification
-- Use Task tool with subagent_type="frontend-orchestration::requirements-reviewer"
+- Use Task tool with subagent_type="shared-agents::requirements-reviewer"
 - Prompt: "Review the following feature requirements for completeness and clarity: $ARGUMENTS. Identify any missing information, ambiguous specifications, or unclear requirements. If critical information is missing, stop and request clarification from the user."
 - Expected output: Requirements validation report, list of clarifying questions (if any), approved requirements document
 - Context: User's feature request and project context
@@ -54,46 +71,53 @@ Orchestrate frontend feature development:
 
 **CRITICAL: Detect project technology BEFORE implementing the feature**
 
-1. **Check for frontend framework and platform**:
+Use Task tool with subagent_type="shared-agents::technology-detector"
+- Prompt: "Detect frontend/mobile technology stack for feature implementation: $ARGUMENTS
 
-   **Web Frameworks (check package.json):**
-   - Look for @angular/core → Angular web project
-   - Look for react (without react-native) → React web project
-   - Look for next → Next.js project
+  Analysis Required:
+  - Analyze package.json and project structure
+  - Identify frontend framework (Angular, React, or Mobile)
+  - Detect framework version and architecture patterns
+  - Identify state management libraries in use
+  - Detect styling approach and libraries
+  - Identify authentication/authorization patterns
+  - Determine development patterns and conventions
 
-   **Mobile Frameworks (check package.json and project files):**
-   - Look for react-native → React Native mobile project
-   - Look for expo → Expo mobile project
-   - Look for @ionic → Ionic mobile project
-   - Look for pubspec.yaml file → Flutter mobile project
-   - Look for ios/ and android/ native directories → Native mobile project
+  Detection Priority:
+  - **Web Frameworks**: Check for @angular/core (Angular), react without react-native (React)
+  - **Mobile Frameworks**: Check for react-native, expo, @ionic, pubspec.yaml (Flutter), native directories
 
-   **Ambiguity scenarios:**
-   - If MULTIPLE web frameworks found (Angular + React): STOP and ask user
-   - If MULTIPLE mobile frameworks found: STOP and ask user
-   - If NO clear framework indicators: STOP and ask user
-   - If package.json missing or incomplete: STOP and ask user
+  Ambiguity Handling:
+  - If multiple web frameworks found (Angular + React): Report ambiguity, request user clarification
+  - If multiple mobile frameworks found: Report ambiguity, request user clarification
+  - If no clear framework indicators: Report ambiguity, request user clarification
+  - If both web and mobile present: Report ambiguity, request user clarification
 
-2. **If unclear or ambiguous**:
-   - Multiple frameworks detected
-   - No clear framework indicators
-   - Package.json missing or incomplete
-   - Both web and mobile frameworks present
+  Output Required:
+  - Primary framework identified: Angular, React, or Mobile (with specific platform)
+  - Framework version and architecture (standalone, NgModule, hooks, etc.)
+  - State management approach detected
+  - Styling approach detected
+  - Authentication approach detected
+  - Recommendation: Which development agent to use (angular-developer, react-developer, mobile-developer)"
 
-   **→ STOP IMMEDIATELY and ask user:**
-   "I detected [describe what was found]. Which technology should I use for this feature?
-   - Angular (web)
-   - React/Next.js (web)
-   - React Native (mobile)
-   - Flutter (mobile)
-   - Expo (mobile)
-   - Ionic (mobile)
-   - Native iOS/Android (mobile)
-   - Other (please specify)"
+- Expected output: Technology detection report with framework, version, tooling, and recommended agent
+- Context: Project root, package.json, project structure
+- Action: Use detection results to route to appropriate development agent
 
-   **Wait for user response before proceeding.**
+**If technology is ambiguous**:
+- Technology-detector will report ambiguity
+- STOP and ask user to clarify which technology to use:
+  - Angular (web)
+  - React (web)
+  - React Native (mobile)
+  - Flutter (mobile)
+  - Expo (mobile)
+  - Ionic (mobile)
+  - Native iOS/Android (mobile)
+- Wait for user response before proceeding
 
-3. **Once technology is confirmed, proceed with appropriate agent:**
+**Once technology is confirmed, proceed with appropriate agent:**
 
 ### 3a. Angular Feature Implementation (if Angular detected)
 - Use Task tool with subagent_type="frontend-mobile-development::angular-developer"
@@ -128,32 +152,33 @@ Orchestrate frontend feature development:
 - Context: Validated requirements from Phase 1, existing project structure, Angular version and architecture (standalone vs NgModule), state management library, styling approach
 - Action: Implement the complete Angular feature with production-ready code, following Angular best practices and project conventions.
 
-### 3b. React/Next.js Feature Implementation (if React/Next.js detected)
-- Use Task tool with subagent_type="frontend-mobile-development::frontend-developer"
-- Prompt: "Implement the following frontend feature: $ARGUMENTS.
+### 3b. React Feature Implementation (if React detected)
+- Use Task tool with subagent_type="frontend-mobile-development::react-developer"
+- Prompt: "Implement the following React feature: $ARGUMENTS.
 
   Detection phase:
-  - Check package.json to detect if Next.js is being used and its version
-  - Check for app/ or pages/ directory structure
+  - Check package.json for React version and build tools (Vite, Webpack, CRA)
+  - Identify routing library (React Router, Wouter, TanStack Router)
   - Detect state management: check for any existing library (continue if found), otherwise use Zustand
   - Detect styling: check for any existing approach (continue if found), otherwise use SCSS
   - Detect authentication: check for existing auth implementation (continue if found)
   - For each detected tool that differs from preferred stack: inform user about preferred tool benefits ONLY if they provide clear advantages, then continue with existing approach
 
   Implementation phase:
-  - Build React components with proper TypeScript types using patterns appropriate for the detected framework and version
+  - Build React components with proper TypeScript types using modern React patterns
   - Implement state management with detected approach (use existing library if found, otherwise Zustand)
   - Style components using detected approach (use existing approach if found, otherwise SCSS)
   - Implement authentication using detected approach (use existing if found, otherwise custom API-based with JWT)
   - Handle API integration with proper error handling and loading states
   - Ensure responsive design and follow accessibility best practices (WCAG 2.1 AA compliance)
   - Include proper error boundaries and optimize for performance
+  - Implement client-side routing with detected routing library
 
   Communication:
   - If using tools different from preferred stack, inform user once about alternative benefits (only if advantageous)
   - Provide specific, measurable advantages (e.g., performance metrics, feature capabilities)
   - Always continue with detected approach for consistency"
-- Expected output: React components (with Next.js-specific patterns if detected), TypeScript types, state management implementation (using detected library or Zustand default), styles using detected approach (or SCSS default), API integration code with detected auth approach (or custom API-based default), responsive styles, accessibility implementations, unit tests for components, optional note about alternative tools if they provide advantages
+- Expected output: React components with TypeScript types, state management implementation (using detected library or Zustand default), styles using detected approach (or SCSS default), API integration code with detected auth approach (or custom API-based default), responsive styles, accessibility implementations, unit tests for components, optional note about alternative tools if they provide advantages
 - Context: Validated requirements from Phase 1, existing project structure and design system, framework version and routing approach, state management library, styling approach
 - Action: Implement the complete feature with production-ready code, following project conventions and framework-specific best practices.
 
@@ -311,20 +336,37 @@ Ask user:
 
 Please review the implementation, code quality, and security findings.
 
-✅ **Approve and Create PR**: Type 'yes', 'approve', or 'continue' to proceed to PR creation
-🔄 **Request Changes**: Type 'no', 'changes needed', or describe what needs to be fixed to return to development phase
-❓ **Need More Info**: Ask questions about the implementation, code quality, or security findings"
+**Your options:**
+1. ✅ **Approve and Create PR**: Type 'yes', 'approve', or 'continue' to proceed to PR creation
+2. ✅ **Approve without PR**: Type 'approve without pr', 'skip pr', or 'finish' to approve and end workflow (no PR created)
+3. 🔄 **Request Changes**: Type 'no', 'changes needed', or describe what needs to be fixed to return to development phase
+4. ❓ **Need More Info**: Ask questions about the implementation, code quality, or security findings"
 
 **User Response Handling:**
-- If APPROVED (yes/approve/continue): Proceed to Phase 4 (PR Creation)
-- If CHANGES NEEDED (no/changes needed/specific requests): Return to Phase 2 (Development) with user's feedback
-- If QUESTIONS: Answer questions and ask again for approval
+- If **APPROVED WITH PR** (yes/approve/continue):
+  - Check --skip-pr flag: If present, treat as "Approve without PR"
+  - If flag not present: Proceed to Phase 4 (PR Creation)
+- If **APPROVED WITHOUT PR** (approve without pr/skip pr/finish):
+  - Workflow ends successfully
+  - No PR created
+  - User can create PR manually later
+- If **CHANGES NEEDED** (no/changes needed/specific requests):
+  - Return to Phase 2 (Development) with user's feedback
+- If **QUESTIONS**:
+  - Answer questions and ask again for approval
 
-**IMPORTANT**: Do NOT proceed to Phase 4 without explicit user approval.
+**IMPORTANT**:
+- Phase 4 only executes if user explicitly chooses "Approve and Create PR" AND --skip-pr flag is NOT present
+- If --skip-pr flag was provided at start, "Approve and Create PR" option automatically becomes "Approve without PR"
 
-## Phase 4: Pull Request Creation
+## Phase 4: Pull Request Creation (Conditional)
 
-**⚠️ This phase only executes after explicit user approval from Phase 3 checkpoint**
+**⚠️ This phase only executes if ALL of the following are true:**
+1. User explicitly approved with "Approve and Create PR" option
+2. --skip-pr flag was NOT provided at workflow start
+3. User did NOT choose "Approve without PR" option
+
+**If skipped**: Workflow ends successfully after Phase 3 approval. User can create PR manually using `/create-pull-request` or `gh` commands.
 
 ### 5. Create Pull Request
 - Use Command tool with command="git-actions::create-pull-request"
@@ -391,7 +433,7 @@ Please review the implementation, code quality, and security findings.
 - **Ambiguity resolved**: If unclear, user was asked to specify technology
 - **Appropriate agent used**:
   - angular-developer for Angular web apps
-  - frontend-developer for React web apps
+  - react-developer for React web apps
   - mobile-developer for mobile apps (React Native, Flutter, Expo, Ionic, Native)
 
 **For Angular web projects:**
@@ -465,37 +507,51 @@ Please review the implementation, code quality, and security findings.
 - Summary presented to user with all findings from both reviews
 - Code quality findings (CRITICAL/HIGH/MEDIUM/LOW) communicated
 - Security findings (CRITICAL/HIGH/MEDIUM/LOW) communicated
-- User explicitly approves to continue (yes/approve/continue)
-- OR user requests changes with specific feedback (returns to Phase 2)
+- User makes explicit choice:
+  - **Option 1**: Approve and create PR (proceed to Phase 4 if --skip-pr not set)
+  - **Option 2**: Approve without PR (finish workflow, skip Phase 4)
+  - **Option 3**: Request changes (return to Phase 2)
 
-### Phase 4 Criteria (Only after approval)
-- User approval received from Phase 3 checkpoint
-- Redmine taskId provided by user
-- All changes committed with descriptive message including taskId
-- Pull Request created (manually for now) with:
-  - Proper title format: [taskId] Brief description
-  - Complete description including feature summary and security audit results
-  - Link to Redmine task
-  - Changes properly documented
+### Phase 4 Criteria (Conditional - Only if approved WITH PR)
+- Phase 4 only executes if:
+  - User chose "Approve and create PR" option, AND
+  - --skip-pr flag was NOT provided at workflow start
+- If Phase 4 executes:
+  - Redmine taskId provided by user
+  - All changes committed with descriptive message including taskId
+  - Pull Request created (manually for now) with:
+    - Proper title format: [taskId] Brief description
+    - Complete description including feature summary and security audit results
+    - Link to Redmine task
+    - Changes properly documented
+- If Phase 4 skipped:
+  - Workflow ends successfully after approval
+  - User can create PR manually later using `/create-pull-request` command
 
 ## Coordination Notes
 
 ### Phase Flow
+- **Workflow Configuration**: Parse --skip-pr flag at start if present
 - Phase 1 must complete successfully before Phase 2 begins
 - Phase 2 must complete successfully before Phase 2.5 begins
 - Phase 2.5 must complete successfully before Phase 3 begins
 - Phase 3 must complete successfully before approval checkpoint
 - **APPROVAL CHECKPOINT**: After Phase 3, workflow STOPS and requests user approval
 - User reviews both code quality (Phase 2.5) and security (Phase 3) findings
-- Phase 4 only proceeds with explicit **USER APPROVAL**
+- **User has three approval options:**
+  1. **Approve and create PR**: Proceed to Phase 4 (unless --skip-pr flag set)
+  2. **Approve without PR**: Finish workflow, skip Phase 4 entirely
+  3. **Request changes**: Return to Phase 2 for modifications
+- **Phase 4 is conditional**:
+  - Only executes if user chose "Approve and create PR" AND --skip-pr flag NOT set
+  - If --skip-pr flag was set, "Approve and create PR" automatically becomes "Approve without PR"
+  - If skipped, user can create PR manually later using `/create-pull-request`
 - Any environment issues must be resolved before development starts
 - Requirements clarification is mandatory if any ambiguity exists
 - Development phase proceeds only with validated, clear requirements
 - Code quality review provides feedback before security audit
 - Security audit is mandatory before feature is considered production-ready
-- **User can request changes**: If not approved, workflow returns to Phase 2 with feedback
-- Pull Request creation requires Redmine taskId from user
-- Pull Request creation only proceeds with explicit user approval
+- Pull Request creation requires Redmine taskId from user (if Phase 4 executes)
 
 ### Phase 1 (Setup & Requirements)
 - Project-setup agent checks Claude initialization FIRST (CLAUDE.md must exist)
@@ -525,7 +581,7 @@ Please review the implementation, code quality, and security findings.
     - Detects Angular version and architecture (standalone vs NgModule)
     - Applies version-appropriate patterns (signals for 16+, control flow for 17+)
     - Uses OnPush change detection, proper subscription management
-  - **React web projects**: Use frontend-developer agent
+  - **React web projects**: Use react-developer agent
     - Detects React version and patterns
     - Applies framework-specific patterns based on detection
   - **Mobile projects**: Use mobile-developer agent

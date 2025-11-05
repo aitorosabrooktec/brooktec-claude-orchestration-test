@@ -162,7 +162,7 @@ Invoke the technology-detector agent to analyze project structure and dependenci
 ### Tool Usage
 ```
 Tool: Task
-Subagent: technology-detector
+Subagent: shared-agents::technology-detector
 Purpose: Identify tech stack for targeted review
 ```
 
@@ -672,15 +672,15 @@ A successful PR review workflow:
 
 ## Failure Scenarios & Handling
 
-| Scenario | Phase | Handling |
-|----------|-------|----------|
-| PR not found | Phase 1 | Abort with clear error message |
-| No changed files | Phase 1 | Abort, nothing to review |
-| Tech detection fails | Phase 2 | Continue with generic review |
-| File read error | Phase 3 | Skip file, note in report |
-| Security agent unavailable | Phase 4 | Perform basic manual checks |
-| Build fails | Phase 5 | Mark as CRITICAL, include in report |
-| gh CLI not available | Phase 6 | Save to file instead |
+| Scenario                   | Phase   | Handling                            |
+| -------------------------- | ------- | ----------------------------------- |
+| PR not found               | Phase 1 | Abort with clear error message      |
+| No changed files           | Phase 1 | Abort, nothing to review            |
+| Tech detection fails       | Phase 2 | Continue with generic review        |
+| File read error            | Phase 3 | Skip file, note in report           |
+| Security agent unavailable | Phase 4 | Perform basic manual checks         |
+| Build fails                | Phase 5 | Mark as CRITICAL, include in report |
+| gh CLI not available       | Phase 6 | Save to file instead                |
 
 ## Integration with Existing Plugins
 
@@ -691,7 +691,7 @@ A successful PR review workflow:
 
 ### Coordinates With:
 - **git-actions**: For PR management and publishing
-- **frontend-developer**: For implementation suggestions
+- **react-developer**: For implementation suggestions
 - **mobile-developer**: For React Native/Flutter specific reviews
 
 ### Output For:

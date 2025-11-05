@@ -13,68 +13,101 @@ This marketplace provides a complete frontend development workflow that includes
 
 ## Plugins
 
-### 1. frontend-orchestration (Workflow Orchestrator)
+### 1. shared-agents (Reusable Agents Library)
+**Library of reusable agents for all workflows**
+
+- **Agents**:
+  - `project-setup` - Environment validation (Claude init, git branch, dependencies, .env)
+  - `technology-detector` - Technology stack detection (React, Angular, Mobile, Backend)
+  - `code-reviewer` - Code quality review with framework-specific checks
+  - `requirements-reviewer` - Requirements validation and clarification
+
+### 2. frontend-orchestration (Workflow Orchestrator)
 **Main orchestration command for frontend feature development**
 
 - **Commands**: `frontend-feature` - Complete 4-phase workflow for frontend features
-- **Agents**: 
-  - `project-setup` - Environment validation (Claude init, git branch, dependencies, .env)
-  - `requirements-reviewer` - Requirements validation and clarification
 
 **⚠️ IMPORTANT**: This plugin orchestrates the workflow but **requires other plugins to be installed** to function properly.
 
 **Required Dependencies**:
-- `frontend-mobile-development` (provides frontend-developer agent)
+- `shared-agents` (provides project-setup, requirements-reviewer, technology-detector, code-reviewer)
+- `frontend-mobile-development` (provides react-developer agent)
 - `security-compliance` (provides security-auditor agent)
 - `git-actions` (provides PR creation workflow)
 
-### 2. frontend-mobile-development (Development Agents)
+### 3. frontend-mobile-development (Development Agents)
 **Expert agents for frontend and mobile development**
 
 - **Agents**:
-  - `frontend-developer` - React expert with framework detection and adaptation
+  - `react-developer` - React expert with modern patterns and hooks
   - `angular-developer` - Angular expert with version-aware patterns and RxJS
   - `mobile-developer` - React Native and Flutter expert
 
-### 3. security-compliance (Security Agents)
+### 4. security-compliance (Security Agents)
 **Security auditing and compliance validation**
 
 - **Agents**:
   - `security-auditor` - Comprehensive security assessment with OWASP Top 10
 
-### 4. git-actions (Git & PR Management)
+### 5. git-actions (Git & PR Management)
 **Pull request creation and management with Redmine integration**
 
 - **Commands**: `create-pull-request` - Orchestrates PR creation workflow
 - **Agents**:
   - `pull-request-manager` - Handles PR tasks (validation, content generation, submission)
 
-### 5. pr-review (Pull Request Review)
+### 6. pr-review (Pull Request Review)
 **Comprehensive pull request review with automated quality and security analysis**
 
 - **Commands**: `review-pull-request` - Complete PR review workflow with technology detection, code quality analysis, security auditing, and build verification
-- **Agents**:
-  - `technology-detector` - Analyzes project structure to identify technologies and frameworks
-  - `pr-reviewer` - Performs comprehensive code quality review with technology-specific insights
-
-**⚠️ IMPORTANT**: This plugin uses the `security-auditor` agent from the `security-compliance` plugin for security analysis.
 
 **Required Dependencies**:
+- `shared-agents` (provides technology-detector, code-reviewer)
 - `security-compliance` (provides security-auditor agent)
+
+### 7. test-orchestration (Test Generation) - NEW in v0.0.5
+**Automated backend test generation with execution, coverage analysis, and quality review**
+
+- **Commands**: `create-backend-tests` - 8-phase test generation workflow
+- **Agents**:
+  - `test-generator` - Generates comprehensive unit, integration, and E2E tests
+
+**Flags**:
+- `--target` (required): File or directory to generate tests for
+- `--type` (optional): Test type (unit, integration, e2e, all) - default: unit
+- `--coverage-threshold` (optional): Minimum coverage percentage - default: 80
+- `--skip-pr` (optional): Skip PR creation
+
+**Supported Frameworks**:
+- Node.js: Jest, Vitest
+- Python: pytest
+- Java: JUnit
+
+**Required Dependencies**:
+- `shared-agents` (provides requirements-reviewer, project-setup, technology-detector, code-reviewer)
+
+### 8. dependency-health (Dependency Management)
+**Automated dependency health checks and updates**
+
+- **Commands**: `check-dependencies` - 4-phase dependency management workflow
+- Validates Node version, resolves vulnerabilities, updates packages, generates reports
 
 ## Installation
 
 ### Option 1: Install Complete Workflow (Recommended)
 
-To use the full `frontend-feature` workflow and PR review capabilities, install **ALL** plugins:
+To use the full `frontend-feature` workflow, PR review, and test generation capabilities, install **ALL** plugins:
 
 ```bash
 # Install all plugins for complete workflow
+@shared-agents
 @frontend-orchestration
 @frontend-mobile-development
 @security-compliance
 @git-actions
 @pr-review
+@test-orchestration
+@dependency-health
 ```
 
 ### Option 2: Install Individual Plugins
@@ -91,9 +124,17 @@ If you only need specific agents without the full workflow:
 # Just PR management
 @git-actions
 
-# Just PR review (requires security-compliance)
+# Just PR review (requires shared-agents and security-compliance)
+@shared-agents
 @pr-review
 @security-compliance
+
+# Just test generation (requires shared-agents)
+@shared-agents
+@test-orchestration
+
+# Just dependency health checks
+@dependency-health
 ```
 
 ## Usage
@@ -117,15 +158,16 @@ This will execute a 4-phase workflow:
    - Verifies dependencies and starts dev server
    - **⚠️ WARNING**: Checks for ESLint configuration
 
-2. **Requirements Review** (`requirements-reviewer` agent):
+2. **Requirements Review** (`requirements-reviewer` agent from shared-agents plugin):
    - Validates requirements completeness
    - Identifies missing information
    - Requests clarification if needed
+   - Stops workflow if critical information is missing
 
 #### Phase 2: Development
 3. **Feature Implementation** (framework-specific agent from frontend-mobile-development plugin):
    - Detects framework (Angular, React, or Mobile)
-   - Routes to appropriate agent (angular-developer, frontend-developer, or mobile-developer)
+   - Routes to appropriate agent (angular-developer, react-developer, or mobile-developer)
    - Detects and adapts to existing tooling (state management, styling, auth)
    - Implements feature with proper TypeScript types
    - Ensures accessibility (WCAG 2.1 AA)
@@ -256,13 +298,107 @@ The review generates:
 - **Positive highlights** of good patterns
 - **Actionable next steps** for the PR author
 
+## Backend Test Generation Workflow
+
+Once the `test-orchestration` plugin is installed (along with `shared-agents`), use the test generation command:
+
+```
+/create-backend-tests --target src/services/user.service.ts
+```
+
+This will execute a comprehensive 8-phase test generation workflow:
+
+#### Phase 1: Setup & Test Target Identification
+- Validates development environment
+- Verifies test framework is configured
+- Identifies target files to generate tests for
+- Analyzes existing test coverage
+
+#### Phase 2: Code Analysis & Test Planning
+- Detects technology stack (Node.js, Python, Java)
+- Analyzes target code structure and dependencies
+- Identifies test scenarios (happy paths, edge cases, error handling)
+- Plans mocking strategy for external dependencies
+
+#### Phase 3: Test Generation
+- Generates comprehensive test suite
+- Follows framework conventions (Jest, pytest, JUnit)
+- Uses AAA pattern (Arrange, Act, Assert)
+- Includes proper mocking for databases, APIs, external services
+- Covers all code branches and error paths
+
+#### Phase 4: Test Execution & Validation
+- Runs generated tests
+- Automatically fixes test failures (up to 3 attempts)
+- Ensures all tests pass before proceeding
+
+#### Phase 5: Coverage Analysis
+- Generates coverage report
+- Analyzes line, branch, and function coverage
+- Identifies uncovered areas
+- Generates additional tests if below threshold
+
+#### Phase 6: Test Quality Review
+- Uses `code-reviewer` agent to assess test quality
+- Checks test structure, assertions, and maintainability
+- Validates proper use of testing framework
+- Ensures tests are independent and deterministic
+
+#### Phase 7: Approval Checkpoint
+**Stops and requests user approval before PR creation**
+
+Presents:
+- Test generation summary (X tests created)
+- Test execution results (all passing)
+- Coverage analysis (X% achieved)
+- Test quality assessment
+
+User options:
+1. **Approve and Create PR**: Proceed to PR creation
+2. **Approve without PR**: Finish workflow, create PR manually later
+3. **Request Changes**: Regenerate tests with modifications
+
+#### Phase 8: Pull Request Creation (Conditional)
+- Only executes if approved with PR and `--skip-pr` flag not present
+- Creates PR with comprehensive test description
+- Links to Redmine task
+- Includes coverage metrics
+
+### Test Generation Usage Examples
+
+**Generate unit tests for single file:**
+```
+/create-backend-tests --target src/services/user.service.ts
+```
+
+**Generate tests for directory with custom coverage threshold:**
+```
+/create-backend-tests --target src/services/ --coverage-threshold 90
+```
+
+**Generate integration tests without creating PR:**
+```
+/create-backend-tests --skip-pr --target src/api/controllers/ --type integration
+```
+
+**Generate all test types (unit, integration, E2E):**
+```
+/create-backend-tests --target src/services/payment.service.ts --type all
+```
+
+### Supported Test Frameworks
+
+- **Node.js**: Jest, Vitest
+- **Python**: pytest
+- **Java**: JUnit
+
 ## Frontend Developer Agent Features
 
 The development agents provide intelligent framework and tooling detection:
 
 ### Framework Detection
 - **Angular Detection** (`angular-developer`): Checks for @angular/core, detects version and architecture (standalone vs NgModule)
-- **React Detection** (`frontend-developer`): Checks for React in package.json, detects version and patterns
+- **React Detection** (`react-developer`): Checks for React in package.json, detects version and patterns
 - **Mobile Detection** (`mobile-developer`): Detects React Native, Flutter, Expo, Ionic, or native frameworks
 
 ### Tooling Adaptation
@@ -296,9 +432,9 @@ The `project-setup` agent validates:
 
 ## Troubleshooting
 
-### "frontend-developer agent not found"
+### "react-developer agent not found"
 
-**Problem**: Installed `frontend-orchestration` but the `frontend-developer` agent is not available.
+**Problem**: Installed `frontend-orchestration` but the `react-developer` agent is not available.
 
 **Solution**: The `frontend-orchestration` plugin requires other plugins. Install all plugins:
 ```
@@ -353,7 +489,50 @@ Pull requests require a Redmine taskId for traceability. Format: `#12345` or `12
 
 ## Version History
 
-### v0.0.4 (Current)
+### v0.0.6 (Current)
+- **AGENT RENAMING**: `frontend-developer` → `react-developer`
+  - Renamed agent to clearly reflect React-only focus
+  - Removed all remaining Next.js references from agent
+  - Updated all 6+ files referencing the agent
+  - Updated marketplace.json manifest
+- **REQUIREMENTS-REVIEWER MOVED TO SHARED-AGENTS**:
+  - Moved from `frontend-orchestration` to `shared-agents` for reusability
+  - Generalized agent to support frontend, backend, mobile, and testing workflows
+  - Now used by both `frontend-feature` and `create-backend-tests` commands
+  - Updated agent to be context-aware (adapts to different workflow types)
+  - All orchestration commands now use `shared-agents::requirements-reviewer`
+- **DOCUMENTATION UPDATES**:
+  - Updated README.md to list `shared-agents` as first plugin
+  - Updated all dependency graphs showing agent locations
+  - Updated marketplace.json with v0.0.6 and complete plugin list
+  - Added v0.0.6 version markers in dependency graphs
+
+### v0.0.5
+- **NEW PLUGIN**: `test-orchestration` - Automated backend test generation workflow
+  - Created `test-generator` agent for comprehensive test creation
+  - Added `create-backend-tests` command with 8-phase workflow
+  - Supports unit, integration, and E2E test generation
+  - Automatic test execution and validation
+  - Coverage analysis with configurable thresholds
+  - Test quality review with code-reviewer agent
+  - Supports Jest, pytest, JUnit frameworks
+  - Flags: `--target` (required), `--type`, `--coverage-threshold`, `--skip-pr`
+- **ENHANCED FRONTEND WORKFLOW**: Major improvements to `/frontend-feature`
+  - Added `--skip-pr` flag to skip PR creation
+  - Enhanced approval checkpoint with 3 options:
+    1. Approve and create PR
+    2. Approve without PR (finish workflow)
+    3. Request changes (return to development)
+  - Phase 4 (PR Creation) now conditional based on user choice and --skip-pr flag
+  - Phase 2 now uses `shared-agents::technology-detector` for consistency
+  - Improved workflow flexibility and user control
+- **DOCUMENTATION UPDATES**:
+  - Updated CLAUDE.md with test-orchestration workflow
+  - Enhanced frontend-feature workflow documentation
+  - Updated dependency graphs
+  - Added test generation examples and usage patterns
+
+### v0.0.4
 - **ARCHITECTURE REORGANIZATION**: Hybrid plugin structure
   - Created `shared-agents` plugin for reusable agents
   - Moved `project-setup` from frontend-orchestration to shared-agents
@@ -374,7 +553,7 @@ Pull requests require a Redmine taskId for traceability. Format: `#12345` or `12
   - Approval checkpoint now reviews both quality (Phase 2.5) and security (Phase 3)
 - **REMOVED NEXT.JS REFERENCES**: Simplified to React-only
   - Updated all documentation and workflow descriptions
-  - `frontend-developer` now focuses on React patterns
+  - `react-developer` (renamed from frontend-developer) now focuses on React patterns
   - Framework detection simplified (Angular/React/Mobile)
 - **DOCUMENTATION UPDATES**:
   - Updated CLAUDE.md with hybrid architecture explanation

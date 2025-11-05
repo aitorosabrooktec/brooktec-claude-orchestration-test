@@ -20,12 +20,14 @@ This is the **Brooktec Claude Code Workflows** marketplace - a collection of spe
 .
 ├── plugins/                          # All plugin definitions
 │   ├── shared-agents/               # Reusable agents library
-│   │   └── agents/                  # project-setup, technology-detector, code-reviewer
-│   ├── frontend-orchestration/      # Main workflow orchestrator
-│   │   ├── agents/                  # requirements-reviewer (workflow-specific)
-│   │   └── commands/                # frontend-feature command
+│   │   └── agents/                  # project-setup, technology-detector, code-reviewer, requirements-reviewer
+│   ├── frontend-orchestration/      # Frontend/Mobile workflow orchestrator
+│   │   └── commands/                # frontend-feature command (with --skip-pr flag)
+│   ├── test-orchestration/          # Test generation workflow (NEW in v0.0.5)
+│   │   ├── agents/                  # test-generator (workflow-specific)
+│   │   └── commands/                # create-backend-tests command (with flags)
 │   ├── frontend-mobile-development/ # Development agents library
-│   │   └── agents/                  # frontend-developer, angular-developer, mobile-developer
+│   │   └── agents/                  # react-developer, angular-developer, mobile-developer
 │   ├── security-compliance/         # Security agents library
 │   │   └── agents/                  # security-auditor
 │   ├── git-actions/                 # PR management workflow
@@ -87,11 +89,12 @@ Commands follow a phase-based execution model:
 ```
 AGENT LIBRARY PLUGINS (Reusable):
 ├── shared-agents
-│   ├── project-setup (used by: frontend-orchestration, potentially others)
-│   ├── technology-detector (used by: pr-review, potentially others)
-│   └── code-reviewer (used by: pr-review, can be used by: frontend-orchestration, quality-gates)
+│   ├── project-setup (used by: frontend-orchestration, test-orchestration)
+│   ├── technology-detector (used by: frontend-orchestration, test-orchestration, pr-review)
+│   ├── code-reviewer (used by: pr-review, test-orchestration, frontend-orchestration Phase 2.5)
+│   └── requirements-reviewer (used by: frontend-orchestration, test-orchestration) ← MOVED in v0.0.6
 ├── frontend-mobile-development
-│   ├── frontend-developer (used by: frontend-orchestration)
+│   ├── react-developer (used by: frontend-orchestration) ← RENAMED from frontend-developer in v0.0.6
 │   ├── angular-developer (used by: frontend-orchestration)
 │   └── mobile-developer (used by: frontend-orchestration)
 └── security-compliance
@@ -100,11 +103,19 @@ AGENT LIBRARY PLUGINS (Reusable):
 WORKFLOW PLUGINS (User-Facing):
 ├── frontend-orchestration
 │   ├─> Uses: shared-agents::project-setup
-│   ├─> Uses: frontend-orchestration::requirements-reviewer (internal)
-│   ├─> Uses: frontend-mobile-development::{frontend,angular,mobile}-developer
+│   ├─> Uses: shared-agents::requirements-reviewer ← MOVED from internal agent in v0.0.6
+│   ├─> Uses: shared-agents::technology-detector (NEW in v0.0.5)
+│   ├─> Uses: frontend-mobile-development::{react,angular,mobile}-developer
+│   ├─> Uses: shared-agents::code-reviewer (Phase 2.5 quality gate)
 │   ├─> Uses: security-compliance::security-auditor
-│   ├─> Uses: git-actions::create-pull-request command
-│   └─> Potential: shared-agents::code-reviewer (for pre-PR quality gate)
+│   └─> Uses: git-actions::create-pull-request command (conditional with --skip-pr)
+├── test-orchestration (NEW in v0.0.5)
+│   ├─> Uses: shared-agents::requirements-reviewer ← ADDED in v0.0.6
+│   ├─> Uses: shared-agents::project-setup
+│   ├─> Uses: shared-agents::technology-detector
+│   ├─> Uses: test-orchestration::test-generator (internal)
+│   ├─> Uses: shared-agents::code-reviewer (test quality review)
+│   └─> Uses: git-actions::create-pull-request command (conditional with --skip-pr)
 ├── pr-review
 │   ├─> Uses: shared-agents::technology-detector
 │   ├─> Uses: shared-agents::code-reviewer
@@ -145,7 +156,12 @@ This separation allows:
 
 **Location**: `plugins/frontend-orchestration/commands/frontend-feature.md`
 
-Four-phase workflow with mandatory approval checkpoint:
+**Enhanced in v0.0.5**: Added --skip-pr flag, Phase 2.5 quality review, 3 approval options, technology-detector integration
+
+**Flags**:
+- `--skip-pr`: Skip PR creation (optional)
+
+**Phases**:
 
 - **Phase 1**: Setup & Requirements Validation
   - Verifies CLAUDE.md exists (stops if missing, directs user to run `/init`)
@@ -155,26 +171,42 @@ Four-phase workflow with mandatory approval checkpoint:
   - Reviews requirements for completeness
 
 - **Phase 2**: Development (with technology detection)
+  - **NEW**: Uses `shared-agents::technology-detector` for framework detection
   - Detects project technology (Angular, React, or Mobile)
   - If ambiguous, STOPS and asks user to specify
   - Routes to appropriate agent:
     - `angular-developer` for Angular projects
-    - `frontend-developer` for React projects
+    - `react-developer` for React projects
     - `mobile-developer` for React Native/Flutter/Expo/Ionic/Native
   - Detects existing tooling (state management, styling, auth) and adapts
   - Implements feature following framework-specific patterns
 
-- **Phase 3**: Security Audit & Approval Checkpoint
-  - Performs comprehensive OWASP Top 10 security audit
-  - STOPS after audit and presents summary to user
-  - User must explicitly approve (yes/approve/continue) to proceed
-  - User can request changes (returns to Phase 2)
-  - **Does NOT proceed to Phase 4 without user approval**
+- **Phase 2.5**: Code Quality Review (NEW in v0.0.5)
+  - Uses `shared-agents::code-reviewer` for quality assessment
+  - Reviews code structure, patterns, best practices, maintainability
+  - Framework-specific checks (Angular/React/Mobile)
+  - TypeScript type safety validation
+  - Performance, testing, accessibility review
+  - Provides categorized findings (CRITICAL/HIGH/MEDIUM/LOW/NITPICK)
 
-- **Phase 4**: Pull Request Creation (only after approval)
+- **Phase 3**: Security Audit
+  - Performs comprehensive OWASP Top 10 security audit
+  - Reviews authentication, XSS, injection vulnerabilities
+  - Validates security headers and dependencies
+
+- **Approval Checkpoint** (after Phase 3)
+  - STOPS and presents code quality + security findings
+  - **User has 3 options** (NEW in v0.0.5):
+    1. **Approve and Create PR**: Proceed to Phase 4 (if --skip-pr not set)
+    2. **Approve without PR**: Finish workflow, skip Phase 4
+    3. **Request Changes**: Return to Phase 2 for modifications
+  - **Does NOT proceed without explicit user approval**
+
+- **Phase 4**: Pull Request Creation (Conditional - NEW in v0.0.5)
+  - Only executes if: User chose "Approve and create PR" AND --skip-pr flag NOT set
   - Requests Redmine taskId from user
   - Validates all changes are committed
-  - Generates PR content with security audit results
+  - Generates PR content with quality + security audit results
   - Provides manual PR creation instructions with formatted content
 
 ### 2. Pull Request Review (`/review-pull-request`)
@@ -205,6 +237,77 @@ Four-phase dependency management workflow:
 
 Creates 3 separate commits for each update phase.
 
+### 4. Backend Test Generation (`/create-backend-tests`) - NEW in v0.0.5
+
+**Location**: `plugins/test-orchestration/commands/create-backend-tests.md`
+
+Comprehensive test generation workflow for backend code with automatic execution and validation.
+
+**Flags**:
+- `--target`: File or directory to generate tests for (required)
+- `--type`: Test type (unit, integration, e2e, or all) - default: unit
+- `--coverage-threshold`: Minimum coverage percentage - default: 80
+- `--skip-pr`: Skip PR creation (optional)
+
+**Phases**:
+
+- **Phase 1**: Setup & Test Target Identification
+  - Validates environment and test framework
+  - Identifies target files from --target flag
+  - Checks existing tests and coverage
+
+- **Phase 2**: Code Analysis & Test Planning
+  - Uses `technology-detector` to identify backend framework
+  - Analyzes target code structure
+  - Identifies test scenarios (happy paths, edge cases, errors)
+  - Plans mocking strategy for external dependencies
+
+- **Phase 3**: Test Generation
+  - Uses `test-generator` agent to create comprehensive tests
+  - Generates unit/integration/E2E tests based on --type flag
+  - Follows framework conventions (Jest, pytest, JUnit)
+  - Implements proper mocking and AAA pattern
+  - Creates test files in appropriate directories
+
+- **Phase 4**: Test Execution & Validation
+  - Runs generated tests
+  - If tests fail: Analyzes and fixes automatically (up to 3 retries)
+  - Ensures all tests pass before proceeding
+
+- **Phase 5**: Coverage Analysis
+  - Runs coverage report
+  - Compares against --coverage-threshold
+  - If below threshold: Generates additional tests automatically
+  - Identifies uncovered branches and gaps
+
+- **Phase 6**: Test Quality Review
+  - Uses `code-reviewer` to review test code quality
+  - Checks test maintainability, mocking quality, independence
+  - Validates AAA pattern and best practices
+  - Reports test quality findings
+
+- **Phase 7**: Approval Checkpoint
+  - STOPS and presents test generation summary
+  - Shows: tests generated, execution results, coverage achieved
+  - **User has 3 options**:
+    1. **Approve and Create PR**: Proceed to Phase 8 (if --skip-pr not set)
+    2. **Approve without PR**: Finish workflow, skip Phase 8
+    3. **Request Changes**: Return to Phase 3 with feedback
+
+- **Phase 8**: Pull Request Creation (Conditional)
+  - Only executes if: User chose "Approve and create PR" AND --skip-pr flag NOT set
+  - Creates PR with test generation summary and coverage reports
+  - Includes Redmine task link
+
+**Example Usage**:
+```bash
+# Generate unit tests for single file
+/create-backend-tests --target src/services/user.service.ts
+
+# Generate all test types with custom threshold, skip PR
+/create-backend-tests --skip-pr --target src/services/ --type all --coverage-threshold 90
+```
+
 ## Framework Detection Logic
 
 ### Technology Detection Priority
@@ -213,7 +316,7 @@ The system detects technology by examining `package.json` and project structure:
 
 **Web Frameworks** (check package.json):
 - `@angular/core` → Angular web project → Use `angular-developer`
-- `react` (without `react-native`) → React project → Use `frontend-developer`
+- `react` (without `react-native`) → React project → Use `react-developer`
 
 **Mobile Frameworks** (check package.json and files):
 - `react-native` → React Native → Use `mobile-developer`
@@ -238,7 +341,7 @@ The system detects technology by examining `package.json` and project structure:
 - HttpClient for API integration
 - Angular CDK A11y for accessibility
 
-**React Projects** (`frontend-developer`):
+**React Projects** (`react-developer`):
 - Detects React version and patterns
 - Applies framework-specific patterns based on detection
 - Detects state management (Redux Toolkit, Zustand, Jotai, Valtio) or uses Zustand default
@@ -479,16 +582,21 @@ https://github.com/brooktec/knowledge-base/
 
 ## Version Management
 
-Current plugin versions (as of v0.0.4):
-- `shared-agents`: Reusable agents library (NEW in v0.0.4)
-  - project-setup (moved from frontend-orchestration)
-  - technology-detector (moved from pr-review)
-  - code-reviewer (moved and renamed from pr-review::pr-reviewer)
-- `frontend-orchestration`: Core workflow orchestrator (Enhanced in v0.0.4 with Phase 2.5)
+Current plugin versions (as of v0.0.5):
+- `shared-agents`: Reusable agents library
+  - project-setup, technology-detector, code-reviewer
+  - Used by all workflows for consistency
+- `frontend-orchestration`: Frontend/Mobile workflow orchestrator
+  - **Enhanced in v0.0.5**: --skip-pr flag, 3 approval options, uses technology-detector
+  - Includes Phase 2.5 code quality review
+- `test-orchestration`: Test generation workflow (NEW in v0.0.5)
+  - Generates unit, integration, and E2E tests for backend code
+  - Automatic test execution, coverage analysis, and quality review
+  - Supports --target, --type, --coverage-threshold, --skip-pr flags
 - `frontend-mobile-development`: Development agents (Angular, React, Mobile)
 - `security-compliance`: Security auditing
 - `git-actions`: PR management
-- `pr-review`: PR review workflow (Simplified in v0.0.4, uses only shared-agents)
+- `pr-review`: PR review workflow (uses only shared-agents)
 - `dependency-health`: Dependency management
 
 ## Notes for Claude Code Instances
@@ -554,6 +662,7 @@ Current plugin versions (as of v0.0.4):
 **Agent Reusability Examples**:
 - `shared-agents::project-setup` - Environment validation (used by: frontend-orchestration, can be used by any workflow)
 - `shared-agents::technology-detector` - Tech stack detection (used by: pr-review, can be used by any workflow)
-- `shared-agents::code-reviewer` - Code quality review (used by: pr-review, potential uses: pre-commit gates, ad-hoc reviews, pre-PR quality checks)
-- `frontend-orchestration::requirements-reviewer` - Internal to frontend-feature workflow only
+- `shared-agents::code-reviewer` - Code quality review (used by: pr-review, test-orchestration, potential uses: pre-commit gates, ad-hoc reviews, pre-PR quality checks)
+- `shared-agents::requirements-reviewer` - Requirements validation (used by: frontend-orchestration, test-orchestration) ← MOVED from frontend-orchestration in v0.0.6
 - When in doubt, check if agent is in a library plugin (`shared-agents`, `frontend-mobile-development`, `security-compliance`) or workflow plugin
+- ALWAYS, in all orchestration commands, add a first step to run the `shared-agents::requirements-reviewer` agent, in order to make sure that what the user is asking is understood and clear.

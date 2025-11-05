@@ -232,7 +232,7 @@ Based on detected technologies, code review should prioritize:
 ### Works With
 - **pr-reviewer**: Provides technology context for targeted review
 - **security-auditor**: Informs security checks (e.g., Django SQL injection patterns)
-- **frontend-developer**: Validates detected stack matches implementation
+- **react-developer**: Validates detected stack matches implementation
 - **mobile-developer**: Identifies React Native vs Flutter
 - **pull-request-manager**: Includes tech stack in PR descriptions
 
