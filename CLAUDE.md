@@ -799,3 +799,4 @@ Current plugin versions (as of v0.0.7):
 - `shared-agents::requirements-reviewer` - Requirements validation (used by: frontend-orchestration, test-orchestration) ← MOVED from frontend-orchestration in v0.0.6
 - When in doubt, check if agent is in a library plugin (`shared-agents`, `frontend-mobile-development`, `security-compliance`) or workflow plugin
 - ALWAYS, in all orchestration commands, add a first step to run the `shared-agents::requirements-reviewer` agent, in order to make sure that what the user is asking is understood and clear.
+- When adding a new orchestration service, add the simplified and detailed diagrams
