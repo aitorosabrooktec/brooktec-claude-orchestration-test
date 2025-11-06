@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Start([Start: /check-dependencies]) --> Phase1[Phase 1: Node.js LTS Version Validation]
+    Start([Start: /check-dependencies]) --> Phase1["Phase 1: Node.js LTS Version Validation<br/><i>dependency-health-checker</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[dependency-health-checker: Validate Node.js version]
@@ -27,7 +27,7 @@ flowchart TD
 
     Commit1 --> VerifyCommit1{Commit created?}
     VerifyCommit1 -->|No| Stop3[❌ STOP: Git error]
-    VerifyCommit1 -->|Yes| Phase2[Phase 2: Security Vulnerability Resolution]
+    VerifyCommit1 -->|Yes| Phase2["Phase 2: Security Vulnerability Resolution<br/><i>dependency-health-checker</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[dependency-health-checker: Audit and resolve vulnerabilities]
@@ -55,7 +55,7 @@ flowchart TD
 
     Commit2 --> VerifyCommit2{Commit created?}
     VerifyCommit2 -->|No| Stop6[❌ STOP: Git error]
-    VerifyCommit2 -->|Yes| Phase3[Phase 3: Package Updates Minor/Patch]
+    VerifyCommit2 -->|Yes| Phase3["Phase 3: Package Updates Minor/Patch<br/><i>dependency-health-checker</i>"]
 
     %% Phase 3
     Phase3 --> Step3_1[dependency-health-checker: Update packages]
@@ -75,7 +75,7 @@ flowchart TD
 
     Commit3 --> VerifyCommit3{Commit created?}
     VerifyCommit3 -->|No| Stop9[❌ STOP: Git error]
-    VerifyCommit3 -->|Yes| Phase4[Phase 4: Report Generation]
+    VerifyCommit3 -->|Yes| Phase4["Phase 4: Report Generation<br/><i>dependency-health-checker</i>"]
 
     %% Phase 4
     Phase4 --> Step4_1[dependency-health-checker: Generate report]
@@ -86,7 +86,7 @@ flowchart TD
     AddTables --> AddRecommendations[Add immediate actions and future maintenance]
     AddRecommendations --> WriteFile[Write report to project root]
     WriteFile --> DisplaySummary[Display condensed summary to user]
-    DisplaySummary --> Phase5[Phase 5: Automated Verification]
+    DisplaySummary --> Phase5["Phase 5: Automated Verification<br/><i>dependency-health-checker</i>"]
 
     %% Phase 5
     Phase5 --> Step5_1[dependency-health-checker: Verify changes]

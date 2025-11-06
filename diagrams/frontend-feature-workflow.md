@@ -6,7 +6,7 @@
 flowchart TD
     Start([Start: /frontend-feature]) --> ParseFlags{Parse Flags}
     ParseFlags --> CheckSkipPR[Check --skip-pr flag]
-    CheckSkipPR --> Phase1[Phase 1: Setup & Requirements]
+    CheckSkipPR --> Phase1["Phase 1: Setup & Requirements<br/><i>project-setup, requirements-reviewer</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[Step 1: Project Setup Agent]
@@ -22,7 +22,7 @@ flowchart TD
 
     Step1_2 --> ReqClear{Requirements clear?}
     ReqClear -->|No| Stop5[❌ STOP: Request clarification]
-    ReqClear -->|Yes| Phase2[Phase 2: Development]
+    ReqClear -->|Yes| Phase2["Phase 2: Development<br/><i>technology-detector, framework-developer</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[Step 1: Technology Detector]
@@ -36,11 +36,11 @@ flowchart TD
     UseReact --> Implement
     UseMobile --> Implement
 
-    Implement --> Phase2_5[Phase 2.5: Code Quality Review]
+    Implement --> Phase2_5["Phase 2.5: Code Quality Review<br/><i>code-reviewer</i>"]
 
     %% Phase 2.5
     Phase2_5 --> CodeReview[Code Reviewer Agent]
-    CodeReview --> Phase3[Phase 3: Security Audit]
+    CodeReview --> Phase3["Phase 3: Security Audit<br/><i>security-auditor</i>"]
 
     %% Phase 3
     Phase3 --> SecurityAudit[Security Auditor Agent]
@@ -57,7 +57,7 @@ flowchart TD
 
     UserDecision -->|Approve and Create PR| CheckSkipPRFlag{--skip-pr flag set?}
     CheckSkipPRFlag -->|Yes| EndNoRP
-    CheckSkipPRFlag -->|No| Phase4[Phase 4: PR Creation]
+    CheckSkipPRFlag -->|No| Phase4["Phase 4: PR Creation<br/><i>pull-request-manager</i>"]
 
     %% Phase 4
     Phase4 --> GetTaskId[Request Redmine taskId]

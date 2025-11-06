@@ -2,6 +2,25 @@
 
 This directory contains comprehensive flowchart diagrams for all orchestrator workflows in the Brooktec Claude Code Workflows marketplace.
 
+## 📊 Diagram Types
+
+### [Simplified Diagrams](./simplified/) (Recommended for Quick Overview)
+High-level diagrams showing only phases and outcomes. Perfect for understanding the workflow at a glance.
+- **Location**: [./simplified/](./simplified/)
+- Fewer nodes and decision points
+- Focus on main phases and user decisions
+- Clear outcome visualization
+- Quick reference
+
+### Detailed Diagrams (Below)
+Comprehensive step-by-step diagrams with all decision points, error handling, and agent invocations.
+- Complete workflow logic
+- All STOP conditions
+- Retry mechanisms
+- Agent specifications
+
+---
+
 ## Available Diagrams
 
 ### 1. Frontend Feature Workflow

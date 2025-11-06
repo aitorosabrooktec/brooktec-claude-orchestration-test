@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Start([Start: create-pull-request]) --> Phase1[Phase 1: Prerequisites Validation]
+    Start([Start: create-pull-request]) --> Phase1["Phase 1: Prerequisites Validation<br/><i>pull-request-manager</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[pull-request-manager: Validate prerequisites]
@@ -19,7 +19,7 @@ flowchart TD
 
     CheckTools --> DetectGH[Check: gh CLI, GitHub MCP]
     DetectGH --> ReportTools[Report available automation: gh CLI / GitHub MCP / manual]
-    ReportTools --> Phase2[Phase 2: Information Gathering]
+    ReportTools --> Phase2["Phase 2: Information Gathering<br/><i>pull-request-manager</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[pull-request-manager: Collect PR information]
@@ -34,7 +34,7 @@ flowchart TD
     GetChanges --> GetSecurity[Gather security audit results if available]
     GetSecurity --> GetTesting[Gather testing information]
     GetTesting --> GetBreaking[Identify breaking changes if any]
-    GetBreaking --> Phase3[Phase 3: PR Content Generation]
+    GetBreaking --> Phase3["Phase 3: PR Content Generation<br/><i>pull-request-manager</i>"]
 
     %% Phase 3
     Phase3 --> Step3_1[pull-request-manager: Generate PR content]
@@ -44,7 +44,7 @@ flowchart TD
 
     GenPRDesc --> DescSections[Description sections: Related Task, Description, Changes, Security, Testing, Screenshots, Breaking Changes, Checklist]
     DescSections --> FormatMarkdown[Format all content as markdown]
-    FormatMarkdown --> Phase4[Phase 4: PR Creation]
+    FormatMarkdown --> Phase4["Phase 4: PR Creation<br/><i>pull-request-manager</i>"]
 
     %% Phase 4
     Phase4 --> DetectMethod{Automation available?}

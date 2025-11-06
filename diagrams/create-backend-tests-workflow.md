@@ -8,7 +8,7 @@ flowchart TD
     ParseFlags --> CheckFlags[Check --target, --type, --coverage-threshold, --skip-pr]
     CheckFlags --> ValidateTarget{--target provided?}
     ValidateTarget -->|No| Stop1[❌ STOP: --target required]
-    ValidateTarget -->|Yes| Phase1[Phase 1: Setup & Requirements]
+    ValidateTarget -->|Yes| Phase1["Phase 1: Setup & Requirements<br/><i>project-setup, requirements-reviewer</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[requirements-reviewer: Validate test generation requirements]
@@ -24,7 +24,7 @@ flowchart TD
     IdentifyTargets --> TargetsExist{Targets exist?}
     TargetsExist -->|No| Stop5[❌ STOP: Target not found]
     TargetsExist -->|Yes| CheckExisting[Check if tests already exist]
-    CheckExisting --> Phase2[Phase 2: Code Analysis & Test Planning]
+    CheckExisting --> Phase2["Phase 2: Code Analysis & Test Planning<br/><i>technology-detector, test-generator</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[technology-detector: Detect backend framework]
@@ -46,7 +46,7 @@ flowchart TD
     IdentifyDeps --> PlanScenarios[Identify test scenarios: happy paths, edge cases, errors]
     PlanScenarios --> PlanMocking[Plan mocking strategy for external dependencies]
     PlanMocking --> EstimateTests[Estimate test count and complexity]
-    EstimateTests --> Phase3[Phase 3: Test Generation]
+    EstimateTests --> Phase3["Phase 3: Test Generation<br/><i>test-generator</i>"]
 
     %% Phase 3
     Phase3 --> Step3_1[test-generator: Generate test suite]
@@ -59,7 +59,7 @@ flowchart TD
     AddComments --> EnsureIndependence[Ensure test independence: no shared state]
     EnsureIndependence --> CoverBranches[Cover all code branches]
     CoverBranches --> WriteFiles[Write test files to proper directories]
-    WriteFiles --> Phase4[Phase 4: Test Execution & Validation]
+    WriteFiles --> Phase4["Phase 4: Test Execution & Validation<br/><i>test framework</i>"]
 
     %% Phase 4
     Phase4 --> Step4_1[Execute generated tests]
@@ -73,7 +73,7 @@ flowchart TD
     FixTest --> RunTests
     ReportBug --> RunTests
     RetryCount -->|No| Stop7[❌ STOP: Manual intervention needed]
-    TestsPass -->|Yes| Phase5[Phase 5: Coverage Analysis]
+    TestsPass -->|Yes| Phase5["Phase 5: Coverage Analysis<br/><i>coverage tools</i>"]
 
     %% Phase 5
     Phase5 --> Step5_1[Run coverage report]
@@ -88,7 +88,7 @@ flowchart TD
     AskUser --> UserAccepts{User accepts?}
     UserAccepts -->|No| Stop8[❌ STOP: Generate more tests]
     UserAccepts -->|Yes| Phase6
-    CompareThreshold -->|Yes| Phase6[Phase 6: Test Quality Review]
+    CompareThreshold -->|Yes| Phase6["Phase 6: Test Quality Review<br/><i>code-reviewer</i>"]
 
     %% Phase 6
     Phase6 --> Step6_1[code-reviewer: Review test code quality]
@@ -101,7 +101,7 @@ flowchart TD
     ReviewNaming --> ReviewAAA[Review: AAA pattern adherence]
     ReviewAAA --> ReviewMaint[Review: Test maintainability]
     ReviewMaint --> ReviewFlaky[Check: Absence of flaky patterns]
-    ReviewFlaky --> Phase7[Phase 7: Approval Checkpoint]
+    ReviewFlaky --> Phase7["Phase 7: Approval Checkpoint<br/><i>user decision</i>"]
 
     %% Phase 7
     Phase7 --> PresentSummary[Present: Tests generated, execution results, coverage, quality]
@@ -114,7 +114,7 @@ flowchart TD
 
     UserDecision -->|Approve and Create PR| CheckSkipPRFlag{--skip-pr flag set?}
     CheckSkipPRFlag -->|Yes| EndNoRP
-    CheckSkipPRFlag -->|No| Phase8[Phase 8: PR Creation]
+    CheckSkipPRFlag -->|No| Phase8["Phase 8: PR Creation<br/><i>pull-request-manager</i>"]
 
     %% Phase 8
     Phase8 --> GetTaskId[Request Redmine taskId]

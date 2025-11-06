@@ -15,12 +15,24 @@ This marketplace provides complete development workflows that include:
 ## 📊 Workflow Diagrams
 
 Visual flowcharts for all orchestrators are available in the [diagrams/](./diagrams/) directory:
-- [Frontend Feature Workflow](./diagrams/frontend-feature-workflow.md) - 4 phases with technology detection
-- [Backend Feature Workflow](./diagrams/backend-feature-workflow.md) - 6 phases with API testing
-- [Pull Request Review](./diagrams/review-pull-request-workflow.md) - 6 phases with comprehensive analysis
-- [Create Pull Request](./diagrams/create-pull-request-workflow.md) - 4 phases with automation
-- [Dependency Health Check](./diagrams/check-dependencies-workflow.md) - 5 phases with verification
-- [Backend Test Generation](./diagrams/create-backend-tests-workflow.md) - 8 phases with coverage analysis
+
+### [Simplified Diagrams](./diagrams/simplified/) (Quick Overview)
+High-level flowcharts showing only phases and outcomes:
+- [Frontend Feature](./diagrams/simplified/frontend-feature-simplified.md) - 4 phases
+- [Backend Feature](./diagrams/simplified/backend-feature-simplified.md) - 6 phases
+- [Pull Request Review](./diagrams/simplified/review-pull-request-simplified.md) - 6 phases
+- [Create Pull Request](./diagrams/simplified/create-pull-request-simplified.md) - 4 phases
+- [Dependency Health Check](./diagrams/simplified/check-dependencies-simplified.md) - 5 phases
+- [Backend Test Generation](./diagrams/simplified/create-backend-tests-simplified.md) - 8 phases
+
+### [Detailed Diagrams](./diagrams/) (Complete Reference)
+Comprehensive step-by-step flowcharts:
+- [Frontend Feature Workflow](./diagrams/frontend-feature-workflow.md) - Technology detection, quality review
+- [Backend Feature Workflow](./diagrams/backend-feature-workflow.md) - API testing, security audit
+- [Pull Request Review](./diagrams/review-pull-request-workflow.md) - Comprehensive analysis
+- [Create Pull Request](./diagrams/create-pull-request-workflow.md) - Automated + manual creation
+- [Dependency Health Check](./diagrams/check-dependencies-workflow.md) - Automated verification
+- [Backend Test Generation](./diagrams/create-backend-tests-workflow.md) - Coverage analysis
 
 Each diagram includes:
 - Complete phase and step breakdown

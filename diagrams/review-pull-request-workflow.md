@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Start([Start: /review-pull-request PR_NUMBER]) --> Phase1[Phase 1: PR Information Gathering]
+    Start([Start: /review-pull-request PR_NUMBER]) --> Phase1["Phase 1: PR Information Gathering<br/><i>git, gh commands</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[Fetch PR details via gh CLI or git commands]
@@ -13,14 +13,14 @@ flowchart TD
     GetDiff --> GetCommits[Get commit history]
     GetCommits --> ValidatePR{PR accessible?}
     ValidatePR -->|No| Stop1[❌ STOP: PR not found or inaccessible]
-    ValidatePR -->|Yes| Phase2[Phase 2: Technology Detection]
+    ValidatePR -->|Yes| Phase2["Phase 2: Technology Detection<br/><i>technology-detector</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[technology-detector Agent]
     Step2_1 --> AnalyzeStack[Analyze package.json, project structure, config files]
     AnalyzeStack --> DetectTech[Detect: Languages, Frameworks, Tools]
     DetectTech --> TechReport[Generate technology report with review focus areas]
-    TechReport --> Phase3[Phase 3: Code Quality Review]
+    TechReport --> Phase3["Phase 3: Code Quality Review<br/><i>code-reviewer</i>"]
 
     %% Phase 3
     Phase3 --> Step3_1[code-reviewer Agent]
@@ -28,14 +28,14 @@ flowchart TD
     ReviewWithContext --> AnalyzeQuality[Analyze: Code quality, best practices, performance, maintainability, testing, docs]
     AnalyzeQuality --> CategorizeFindings[Categorize findings by severity]
     CategorizeFindings --> GenerateReview[Generate structured feedback with file:line refs, code examples]
-    GenerateReview --> Phase4[Phase 4: Security Audit]
+    GenerateReview --> Phase4["Phase 4: Security Audit<br/><i>security-auditor</i>"]
 
     %% Phase 4
     Phase4 --> Step4_1[security-auditor Agent]
     Step4_1 --> SecurityScan[Perform OWASP Top 10 vulnerability scan]
     SecurityScan --> CheckVulns[Check: SQL/NoSQL injection, XSS, CSRF, auth issues, sensitive data exposure, input validation]
     CheckVulns --> SecurityReport[Generate security compliance report]
-    SecurityReport --> Phase5[Phase 5: Lint & Build Verification]
+    SecurityReport --> Phase5["Phase 5: Lint & Build Verification<br/><i>bash commands</i>"]
 
     %% Phase 5
     Phase5 --> Step5_1[Run Linting Tools]
@@ -52,7 +52,7 @@ flowchart TD
     RecordBuildErrors --> Step5_3[Check Type Errors]
 
     Step5_3 --> RunTypeCheck[Execute: tsc, mypy, or type checker]
-    RunTypeCheck --> Phase6[Phase 6: Review Summary & Publishing]
+    RunTypeCheck --> Phase6["Phase 6: Review Summary & Publishing<br/><i>orchestrator</i>"]
 
     %% Phase 6
     Phase6 --> ConsolidateFindings[Consolidate all findings from all phases]

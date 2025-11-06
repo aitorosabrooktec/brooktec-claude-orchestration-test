@@ -6,7 +6,7 @@
 flowchart TD
     Start([Start: /backend-feature]) --> ParseFlags{Parse Flags}
     ParseFlags --> CheckFlags[Check --skip-pr and --skip-tests]
-    CheckFlags --> Phase1[Phase 1: Setup & Requirements]
+    CheckFlags --> Phase1["Phase 1: Setup & Requirements<br/><i>project-setup, requirements-reviewer</i>"]
 
     %% Phase 1
     Phase1 --> Step1_1[Step 1: Project Setup Agent]
@@ -22,7 +22,7 @@ flowchart TD
 
     Step1_2 --> ReqClear{Backend requirements clear?}
     ReqClear -->|No| Stop5[❌ STOP: Clarify API specs, business logic]
-    ReqClear -->|Yes| Phase2[Phase 2: Development]
+    ReqClear -->|Yes| Phase2["Phase 2: Development<br/><i>technology-detector, node-developer</i>"]
 
     %% Phase 2
     Phase2 --> Step2_1[Step 1: Technology Detector]
@@ -39,7 +39,7 @@ flowchart TD
     ImplDetails --> CheckSkipTests{--skip-tests flag?}
 
     %% Phase 3 (Conditional)
-    CheckSkipTests -->|No| Phase3[Phase 3: API Testing]
+    CheckSkipTests -->|No| Phase3["Phase 3: API Testing<br/><i>test-generator</i>"]
     CheckSkipTests -->|Yes| SkipTests[⏭️ Skip API Testing]
     SkipTests --> Phase4
 
@@ -51,7 +51,7 @@ flowchart TD
     RetryTests -->|Yes| FixTests[Analyze and fix tests/implementation]
     FixTests --> Step3_2
     RetryTests -->|No| Stop7[❌ STOP: Manual intervention needed]
-    TestsPass -->|Yes| Phase4[Phase 4: Quality & Security Review]
+    TestsPass -->|Yes| Phase4["Phase 4: Quality & Security Review<br/><i>code-reviewer, security-auditor</i>"]
 
     %% Phase 4
     Phase4 --> Step4_1[Step 1: Code Quality Review]
@@ -71,7 +71,7 @@ flowchart TD
 
     UserDecision -->|Approve and Create PR| CheckSkipPRFlag{--skip-pr flag set?}
     CheckSkipPRFlag -->|Yes| EndNoRP
-    CheckSkipPRFlag -->|No| Phase6[Phase 6: PR Creation]
+    CheckSkipPRFlag -->|No| Phase6["Phase 6: PR Creation<br/><i>pull-request-manager</i>"]
 
     %% Phase 6
     Phase6 --> GetTaskId[Request Redmine taskId]
